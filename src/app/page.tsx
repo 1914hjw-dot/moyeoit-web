@@ -5,9 +5,8 @@ import { useRouter } from 'next/navigation';
 import { CalendarSelector } from '@/components/ui/CalendarSelector';
 import { AdBanner } from '@/components/ui/Monetization/AdBanner';
 import { Footer } from '@/components/ui/Footer';
-import { createRoomMock } from '@/lib/mockStore';
 import { ScheduleType } from '@/types/schema';
-import { Sparkles, Calendar, ArrowRight, CheckCircle2, ShieldCheck, Share2, Layers } from 'lucide-react';
+import { Sparkles, Calendar, ArrowRight } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
@@ -29,7 +28,7 @@ export default function HomePage() {
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCreateRoom = (e: React.FormEvent) => {
+  const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
       alert('모임 제목을 입력해 주세요.');
@@ -42,18 +41,27 @@ export default function HomePage() {
 
     setIsSubmitting(true);
     try {
-      const room = createRoomMock({
-        title: title.trim(),
-        description: description.trim(),
-        schedule_type: scheduleType,
-        candidate_dates: selectedDates,
-        time_slots: scheduleType === 'date_time' ? timeSlots : [],
+      const res = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          schedule_type: scheduleType,
+          candidate_dates: selectedDates,
+          time_slots: scheduleType === 'date_time' ? timeSlots : [],
+        }),
       });
 
-      router.push(`/room/${room.id}`);
-    } catch (err) {
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || '방 생성에 실패했습니다. 다시 시도해 주세요.');
+      }
+
+      router.push(`/room/${data.room.id}`);
+    } catch (err: any) {
       console.error(err);
-      alert('방 생성에 실패했습니다. 다시 시도해 주세요.');
+      alert(err.message || '방 생성에 실패했습니다. 다시 시도해 주세요.');
       setIsSubmitting(false);
     }
   };
@@ -81,7 +89,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => router.push('/room/demo-room-1')}
-              className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-800 transition-all flex items-center gap-1"
+              className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-800 transition-all flex items-center gap-1 cursor-pointer"
             >
               <span>실시간 시연 방</span>
               <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
@@ -92,7 +100,7 @@ export default function HomePage() {
         {/* Hero Section - Vercel / Linear Style */}
         <section className="text-center space-y-6 pt-4 pb-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
             <span>회원가입 0초 • 복잡한 조율 과정 최소화</span>
           </div>
 
@@ -110,7 +118,7 @@ export default function HomePage() {
 
           {/* Interactive Live Hero Simulation Card */}
           <div className="max-w-md mx-auto pt-2">
-            <div className="linear-card p-4 border-zinc-800 bg-zinc-950/80 text-left space-y-3 shadow-xl">
+            <div className="sys-card p-4 border-zinc-800 bg-zinc-950/80 text-left space-y-3 shadow-xl">
               <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2.5">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-zinc-200">🎉 7월 모여잇 정기 모임</span>
@@ -159,7 +167,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="linear-card p-5 space-y-2 border-zinc-800">
+            <div className="sys-card p-5 space-y-2 border-zinc-800">
               <span className="text-xs font-black text-indigo-400 tracking-wider">01</span>
               <h4 className="text-sm font-bold text-zinc-100">10초 만에 방 만들기</h4>
               <p className="text-xs text-zinc-400 leading-relaxed">
@@ -167,7 +175,7 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="linear-card p-5 space-y-2 border-zinc-800">
+            <div className="sys-card p-5 space-y-2 border-zinc-800">
               <span className="text-xs font-black text-indigo-400 tracking-wider">02</span>
               <h4 className="text-sm font-bold text-zinc-100">단톡방에 1초 공유</h4>
               <p className="text-xs text-zinc-400 leading-relaxed">
@@ -175,7 +183,7 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="linear-card p-5 space-y-2 border-zinc-800">
+            <div className="sys-card p-5 space-y-2 border-zinc-800">
               <span className="text-xs font-black text-indigo-400 tracking-wider">03</span>
               <h4 className="text-sm font-bold text-zinc-100">황금 날짜 한눈에 확인</h4>
               <p className="text-xs text-zinc-400 leading-relaxed">
@@ -187,7 +195,7 @@ export default function HomePage() {
 
         {/* Main Room Creation Form Section */}
         <section>
-          <form onSubmit={handleCreateRoom} className="linear-card p-6 sm:p-8 space-y-6">
+          <form onSubmit={handleCreateRoom} className="sys-card p-6 sm:p-8 space-y-6">
             <div className="space-y-1">
               <h3 className="text-lg font-extrabold text-zinc-100 flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-indigo-400" />
@@ -210,7 +218,7 @@ export default function HomePage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="예: 7월 정기 스터디 / 주말 파티룸 모임"
-                  className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 text-sm font-semibold placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 transition-all"
+                  className="w-full sys-input"
                 />
               </div>
 
@@ -223,7 +231,7 @@ export default function HomePage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="예: 가장 많은 사람이 올 수 있는 날짜로 정해요!"
-                  className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 text-sm font-semibold placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 transition-all"
+                  className="w-full sys-input"
                 />
               </div>
             </div>
@@ -247,7 +255,7 @@ export default function HomePage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-4 rounded-xl v-btn-primary text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="w-full sys-btn-primary text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
               <span>{isSubmitting ? '약속 방 생성 중...' : '약속 방 만들기'}</span>
@@ -257,7 +265,7 @@ export default function HomePage() {
         </section>
 
         {/* Demo Rooms Shortcuts */}
-        <section className="linear-card p-5 space-y-3">
+        <section className="sys-card p-5 space-y-3">
           <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
             시연 모임방 미리보기
           </h4>
@@ -265,7 +273,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => router.push('/room/demo-room-1')}
-              className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-left transition-all group"
+              className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-left transition-all group cursor-pointer"
             >
               <p className="text-xs font-extrabold text-zinc-200 group-hover:text-white">
                 🎉 7월 모여잇 정기 스터디 모임
@@ -278,7 +286,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => router.push('/room/demo-room-2')}
-              className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-left transition-all group"
+              className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-left transition-all group cursor-pointer"
             >
               <p className="text-xs font-extrabold text-zinc-200 group-hover:text-white">
                 ☕ 주말 파티룸 모임 (시간대 지정)

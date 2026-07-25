@@ -1,5 +1,5 @@
 import { Room, Vote, CreateRoomInput, SubmitVoteInput } from '@/types/schema';
-import { hashPassword } from '@/lib/crypto';
+import { hashPassword, sanitizeInput } from '@/lib/crypto';
 
 // Initial demo mock data
 const INITIAL_ROOMS: Room[] = [
@@ -87,6 +87,41 @@ const INITIAL_VOTES: Vote[] = [
 const ROOMS_KEY = 'moyeoit_rooms_store';
 const VOTES_KEY = 'moyeoit_votes_store';
 
+// Rate Limiting & Anti-Bruteforce State Store
+const FAILED_ATTEMPTS: Record<string, { count: number; lastTime: number }> = {};
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 60000; // 1 min lock for 5 consecutive failures
+
+function checkRateLimit(key: string): void {
+  const now = Date.now();
+  const record = FAILED_ATTEMPTS[key];
+  if (record) {
+    if (record.count >= MAX_ATTEMPTS) {
+      const elapsed = now - record.lastTime;
+      if (elapsed < LOCKOUT_MS) {
+        const remainingSec = Math.ceil((LOCKOUT_MS - elapsed) / 1000);
+        throw new Error(`비밀번호 연속 실패로 제한되었습니다. ${remainingSec}초 후 다시 시도해 주세요.`);
+      } else {
+        // Reset after lockout period
+        FAILED_ATTEMPTS[key] = { count: 0, lastTime: now };
+      }
+    }
+  }
+}
+
+function recordFailedAttempt(key: string): void {
+  const now = Date.now();
+  const record = FAILED_ATTEMPTS[key] || { count: 0, lastTime: now };
+  FAILED_ATTEMPTS[key] = {
+    count: record.count + 1,
+    lastTime: now,
+  };
+}
+
+function clearFailedAttempt(key: string): void {
+  delete FAILED_ATTEMPTS[key];
+}
+
 function getStoredRooms(): Room[] {
   if (typeof window === 'undefined') return INITIAL_ROOMS;
   try {
@@ -126,14 +161,21 @@ function saveStoredVotes(votes: Vote[]): void {
 }
 
 export function createRoomMock(input: CreateRoomInput): Room {
+  const cleanTitle = sanitizeInput(input.title, 80);
+  const cleanDesc = sanitizeInput(input.description || '', 200);
+
+  if (!cleanTitle) {
+    throw new Error('올바른 모임 제목을 입력해 주세요.');
+  }
+
   const rooms = getStoredRooms();
   const newRoom: Room = {
     id: `moyeoit-${Math.random().toString(36).substring(2, 9)}`,
-    title: input.title,
-    description: input.description,
-    schedule_type: input.schedule_type,
-    candidate_dates: input.candidate_dates,
-    time_slots: input.time_slots || [],
+    title: cleanTitle,
+    description: cleanDesc,
+    schedule_type: input.schedule_type === 'date_time' ? 'date_time' : 'date_only',
+    candidate_dates: (input.candidate_dates || []).slice(0, 31).map((d) => sanitizeInput(d, 20)),
+    time_slots: (input.time_slots || []).slice(0, 10).map((s) => sanitizeInput(s, 50)),
     created_at: new Date().toISOString(),
   };
 
@@ -143,55 +185,89 @@ export function createRoomMock(input: CreateRoomInput): Room {
 }
 
 export function getRoomByIdMock(id: string): Room | null {
+  const cleanId = sanitizeInput(id, 50);
   const rooms = getStoredRooms();
-  return rooms.find((r) => r.id === id) || null;
+  return rooms.find((r) => r.id === cleanId) || null;
 }
 
 export function getVotesByRoomIdMock(roomId: string): Vote[] {
+  const cleanRoomId = sanitizeInput(roomId, 50);
   const votes = getStoredVotes();
-  return votes.filter((v) => v.room_id === roomId);
+  // Strip password_hash from returning objects to prevent hash leaks!
+  return votes
+    .filter((v) => v.room_id === cleanRoomId)
+    .map((v) => ({
+      ...v,
+      password_hash: undefined, // Never expose password hash in response
+    }));
 }
 
 export async function submitVoteMock(input: SubmitVoteInput): Promise<Vote> {
+  const cleanRoomId = sanitizeInput(input.room_id, 50);
+  const cleanNickname = sanitizeInput(input.nickname, 30);
+  const cleanNote = sanitizeInput(input.note || '', 200);
+
+  if (!cleanNickname) {
+    throw new Error('올바른 닉네임을 입력해 주세요.');
+  }
+
   const votes = getStoredVotes();
   const existingIndex = votes.findIndex(
-    (v) => v.room_id === input.room_id && v.nickname.trim().toLowerCase() === input.nickname.trim().toLowerCase()
+    (v) => v.room_id === cleanRoomId && v.nickname.trim().toLowerCase() === cleanNickname.toLowerCase()
   );
 
   const now = new Date().toISOString();
-  const hashedPw = input.password ? await hashPassword(input.password) : '';
+  const hashedInputPw = input.password ? await hashPassword(input.password) : '';
+  const attemptKey = `${cleanRoomId}_${cleanNickname.toLowerCase()}`;
 
   if (existingIndex >= 0) {
     const existing = votes[existingIndex];
 
-    // Password verification check if password was set previously
-    if (existing.password_hash && hashedPw && existing.password_hash !== hashedPw) {
-      throw new Error('비밀번호가 일치하지 않습니다.');
+    // Check anti-bruteforce rate limit before checking password
+    checkRateLimit(attemptKey);
+
+    // Strict IDOR & Password Authorization Check
+    if (existing.password_hash) {
+      if (!hashedInputPw || existing.password_hash !== hashedInputPw) {
+        recordFailedAttempt(attemptKey);
+        throw new Error('비밀번호가 일치하지 않습니다. 본인의 닉네임과 설정한 비밀번호를 확인해 주세요.');
+      }
     }
+
+    clearFailedAttempt(attemptKey);
 
     const updatedVote: Vote = {
       ...existing,
-      password_hash: hashedPw || existing.password_hash,
+      password_hash: hashedInputPw || existing.password_hash,
       availability: input.availability,
-      note: input.note,
+      note: cleanNote,
       updated_at: now,
     };
     votes[existingIndex] = updatedVote;
     saveStoredVotes(votes);
-    return updatedVote;
+
+    // Return safe sanitized vote without password hash
+    return {
+      ...updatedVote,
+      password_hash: undefined,
+    };
   } else {
     const newVote: Vote = {
       id: `vote-${Math.random().toString(36).substring(2, 9)}`,
-      room_id: input.room_id,
-      nickname: input.nickname.trim(),
-      password_hash: hashedPw,
+      room_id: cleanRoomId,
+      nickname: cleanNickname,
+      password_hash: hashedInputPw,
       availability: input.availability,
-      note: input.note,
+      note: cleanNote,
       created_at: now,
       updated_at: now,
     };
     votes.push(newVote);
     saveStoredVotes(votes);
-    return newVote;
+
+    return {
+      ...newVote,
+      password_hash: undefined,
+    };
   }
 }

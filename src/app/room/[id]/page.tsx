@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Room, Vote, SubmitVoteInput } from '@/types/schema';
-import { getRoomByIdMock, getVotesByRoomIdMock, submitVoteMock } from '@/lib/mockStore';
 import { computeHeatmapData, extractGoldenDates } from '@/lib/analytics';
 import { GoldenDateCard } from '@/components/ui/GoldenDateCard';
 import { HeatmapGrid } from '@/components/ui/HeatmapGrid';
@@ -54,21 +53,30 @@ export default function RoomDetailPage() {
     };
   }, []);
 
-  const loadRoomData = () => {
+  const loadRoomData = async () => {
     if (!roomId) return;
     setLoading(true);
     try {
-      const roomData = getRoomByIdMock(roomId);
-      if (roomData) {
-        setRoom(roomData);
-        const voteData = getVotesByRoomIdMock(roomId);
-        setVotes(voteData);
-        if (voteData.length === 0) {
+      const roomRes = await fetch(`/api/rooms/${roomId}`);
+      const roomData = await roomRes.json();
+
+      if (roomRes.ok && roomData.success && roomData.room) {
+        setRoom(roomData.room);
+
+        const votesRes = await fetch(`/api/rooms/${roomId}/votes`);
+        const votesData = await votesRes.json();
+        const voteList = votesRes.ok && votesData.success ? votesData.votes : [];
+        setVotes(voteList);
+
+        if (voteList.length === 0) {
           setShowShareModal(true);
         }
       } else {
         setRoom(null);
       }
+    } catch (e) {
+      console.error('Failed to load room data:', e);
+      setRoom(null);
     } finally {
       setLoading(false);
     }
@@ -109,8 +117,18 @@ export default function RoomDetailPage() {
   const goldenRecommendations = extractGoldenDates(heatmapMap, totalVotersCount);
 
   const handleSubmitVote = async (input: SubmitVoteInput) => {
-    await submitVoteMock(input);
-    loadRoomData();
+    const res = await fetch(`/api/rooms/${roomId}/votes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || '투표 제출 중 오류가 발생했습니다.');
+    }
+
+    await loadRoomData();
     setShowVoteForm(false);
   };
 
@@ -275,7 +293,7 @@ export default function RoomDetailPage() {
         <AdBanner slotType="bottom_vote" />
       </div>
 
-      {/* Apple-level Sticky Mobile Floating Action Bar (Cycle 2 Optimization) */}
+      {/* Apple-level Sticky Mobile Floating Action Bar */}
       <div className="fixed bottom-4 left-4 right-4 z-40 sm:hidden">
         <div className="sys-card p-3 bg-zinc-950/90 backdrop-blur-md border border-zinc-800 flex items-center justify-between gap-2 shadow-2xl">
           <button
