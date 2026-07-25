@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getVotesByRoomId, submitVote, VoteConflictError } from '@/lib/services/voteService';
 
+function hasPrototypePollutionKey(obj: any): boolean {
+  if (!obj || typeof obj !== 'object') return false;
+  const keys = Object.keys(obj);
+  return keys.some((k) => k === '__proto__' || k === 'constructor' || k === 'prototype');
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -34,8 +40,8 @@ export async function POST(
     const { id } = await params;
     const body = await req.json();
 
-    // 2. Prototype Pollution Prevention Check
-    if (body && (body.__proto__ || body.constructor?.prototype)) {
+    // 2. Prototype Pollution Prevention Check (Own Keys Validation)
+    if (hasPrototypePollutionKey(body)) {
       return NextResponse.json(
         { success: false, error: '부정확한 요청 바디입니다.' },
         { status: 400 }
