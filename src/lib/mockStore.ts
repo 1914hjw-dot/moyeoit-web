@@ -1,4 +1,5 @@
 import { Room, Vote, CreateRoomInput, SubmitVoteInput } from '@/types/schema';
+import { hashPassword } from '@/lib/crypto';
 
 // Initial demo mock data
 const INITIAL_ROOMS: Room[] = [
@@ -34,6 +35,7 @@ const INITIAL_VOTES: Vote[] = [
     id: 'v-1',
     room_id: 'demo-room-1',
     nickname: '민수',
+    password_hash: 'demo_hashed_pw_1',
     availability: {
       '2026-07-26': 'possible',
       '2026-07-27': 'possible',
@@ -50,6 +52,7 @@ const INITIAL_VOTES: Vote[] = [
     id: 'v-2',
     room_id: 'demo-room-1',
     nickname: '지현',
+    password_hash: 'demo_hashed_pw_2',
     availability: {
       '2026-07-26': 'possible',
       '2026-07-27': 'possible',
@@ -66,6 +69,7 @@ const INITIAL_VOTES: Vote[] = [
     id: 'v-3',
     room_id: 'demo-room-1',
     nickname: '수진',
+    password_hash: 'demo_hashed_pw_3',
     availability: {
       '2026-07-26': 'possible',
       '2026-07-27': 'impossible',
@@ -148,19 +152,26 @@ export function getVotesByRoomIdMock(roomId: string): Vote[] {
   return votes.filter((v) => v.room_id === roomId);
 }
 
-export function submitVoteMock(input: SubmitVoteInput): Vote {
+export async function submitVoteMock(input: SubmitVoteInput): Promise<Vote> {
   const votes = getStoredVotes();
   const existingIndex = votes.findIndex(
     (v) => v.room_id === input.room_id && v.nickname.trim().toLowerCase() === input.nickname.trim().toLowerCase()
   );
 
   const now = new Date().toISOString();
+  const hashedPw = input.password ? await hashPassword(input.password) : '';
 
   if (existingIndex >= 0) {
-    // Update existing vote
     const existing = votes[existingIndex];
+
+    // Password verification check if password was set previously
+    if (existing.password_hash && hashedPw && existing.password_hash !== hashedPw) {
+      throw new Error('비밀번호가 일치하지 않습니다.');
+    }
+
     const updatedVote: Vote = {
       ...existing,
+      password_hash: hashedPw || existing.password_hash,
       availability: input.availability,
       note: input.note,
       updated_at: now,
@@ -169,12 +180,11 @@ export function submitVoteMock(input: SubmitVoteInput): Vote {
     saveStoredVotes(votes);
     return updatedVote;
   } else {
-    // Create new vote
     const newVote: Vote = {
       id: `vote-${Math.random().toString(36).substring(2, 9)}`,
       room_id: input.room_id,
       nickname: input.nickname.trim(),
-      password_hash: input.password || '',
+      password_hash: hashedPw,
       availability: input.availability,
       note: input.note,
       created_at: now,
