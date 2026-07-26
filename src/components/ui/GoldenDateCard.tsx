@@ -1,13 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Crown, Sparkles, CheckCircle2, AlertCircle, ThumbsUp, ShieldCheck } from 'lucide-react';
+import { Crown, Sparkles, CheckCircle2, AlertCircle, ThumbsUp, ShieldCheck, Users, Share2 } from 'lucide-react';
 import { GoldenDateRecommendation } from '@/types/schema';
 import { formatKoreanDate } from '@/lib/analytics';
 
 interface GoldenDateCardProps {
   recommendations: GoldenDateRecommendation[];
   onConfirmDate?: (date: string, timeSlot?: string) => void;
+  onShare?: () => void;
   selectedConfirmedKey?: string;
   isHost?: boolean;
 }
@@ -15,18 +16,32 @@ interface GoldenDateCardProps {
 export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
   recommendations,
   onConfirmDate,
+  onShare,
   selectedConfirmedKey,
   isHost = false,
 }) => {
   if (recommendations.length === 0) {
     return (
-      <div className="w-full sys-card p-6 text-center border-dashed border-zinc-800 my-4">
-        <p className="text-xs font-bold text-zinc-300">
-          아직 제출된 투표가 없습니다.
-        </p>
-        <p className="text-[11px] text-zinc-500 mt-1">
-          초대 링크를 전달하여 첫 가능 날짜를 등록해 보세요.
-        </p>
+      <div className="w-full sys-card p-6 text-center space-y-3 border-dashed border-zinc-800 my-4 bg-zinc-950/60">
+        <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+          <Users className="w-5 h-5" />
+        </div>
+        <div className="space-y-1">
+          <h4 className="text-sm font-extrabold text-zinc-200">👥 아직 다른 참여자의 응답이 없어요</h4>
+          <p className="text-xs text-zinc-400">
+            친구들에게 링크를 공유하면 가장 많은 인원이 가능한 최적의 날짜를 찾아드려요!
+          </p>
+        </div>
+        {onShare && (
+          <button
+            type="button"
+            onClick={onShare}
+            className="px-4 py-2 rounded-xl bg-amber-400 text-zinc-950 font-extrabold text-xs inline-flex items-center gap-1.5 shadow-md cursor-pointer hover:bg-amber-300 transition-all"
+          >
+            <Share2 className="w-3.5 h-3.5 fill-zinc-950" />
+            <span>친구들에게 초대 링크 전달하기</span>
+          </button>
+        )}
       </div>
     );
   }
@@ -65,7 +80,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
         <div className="flex items-center gap-2">
           <Crown className="w-4 h-4 text-amber-400 fill-amber-400" />
           <h3 className="text-sm font-extrabold text-zinc-100 tracking-tight">
-            최적 약속 날짜 추천
+            🎉 현재 가장 추천하는 날짜
           </h3>
         </div>
         <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">

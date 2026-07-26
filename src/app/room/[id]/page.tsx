@@ -193,6 +193,11 @@ export default function RoomDetailPage() {
     setConfirmedDateInfo({ date, timeSlot });
   };
 
+  // Fallback title if room title is empty or numeric
+  const displayTitle = room.title && room.title.trim().length > 0 && isNaN(Number(room.title.trim()))
+    ? room.title
+    : '📅 모임 약속 날짜 정하기';
+
   return (
     <main className="min-h-screen max-w-3xl mx-auto px-4 py-4 space-y-5 flex flex-col justify-between pb-24 sm:pb-8">
       <div className="space-y-5">
@@ -211,15 +216,15 @@ export default function RoomDetailPage() {
             <button
               type="button"
               onClick={() => setShowShareSheet(true)}
-              className="px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-amber-400 text-zinc-950 hover:bg-amber-300 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-zinc-800 text-zinc-200 border border-zinc-700 hover:bg-zinc-700 transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <Share2 className="w-3.5 h-3.5 fill-zinc-950" />
+              <Share2 className="w-3.5 h-3.5" />
               <span>초대 링크 공유</span>
             </button>
           </div>
         </header>
 
-        {/* [1] Room Title & Participant Count & Host/Guest Badge */}
+        {/* SECTION A: Room Header */}
         <section className="sys-card p-5 space-y-2 border-zinc-800 shadow-xl bg-zinc-950">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-1.5">
@@ -242,35 +247,47 @@ export default function RoomDetailPage() {
             </span>
           </div>
 
-          <h1 className="text-xl sm:text-2xl font-black text-zinc-100 leading-tight">{room.title}</h1>
+          <h1 className="text-xl sm:text-2xl font-black text-zinc-100 leading-tight">{displayTitle}</h1>
 
           {room.description && (
             <p className="text-xs text-zinc-400">{room.description}</p>
           )}
         </section>
 
-        {/* [2] Current User's Vote Status Banner */}
+        {/* SECTION B: User Vote Section (PRIMARY FOCUS) */}
         {isVoted && !showVoteForm ? (
-          <div className="p-4 rounded-2xl bg-zinc-900 border border-emerald-500/30 flex items-center justify-between gap-3 shadow-md flex-wrap">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold shrink-0">
-                <Check className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs font-extrabold text-zinc-100">
-                  {myVote?.nickname}님의 가능 날짜 투표가 완료되었습니다!
-                </p>
-                <p className="text-[11px] text-zinc-400">
-                  결과를 확인하거나 일정이 변경되면 언제든 수정/삭제할 수 있습니다.
-                </p>
+          /* Submission Success State */
+          <div className="sys-card p-5 border-emerald-500/30 bg-emerald-950/20 space-y-4 shadow-lg">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold shrink-0">
+                  <Check className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-zinc-100">
+                    🎉 {myVote?.nickname}님의 가능 날짜 투표가 저장되었습니다!
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    일정이 변경되면 언제든 아래 버튼으로 수정하거나 삭제할 수 있습니다.
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 pt-1 border-t border-emerald-500/20 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setShowShareSheet(true)}
+                className="flex-1 min-w-[140px] py-2.5 rounded-xl bg-amber-400 text-zinc-950 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer hover:bg-amber-300 transition-all"
+              >
+                <Share2 className="w-3.5 h-3.5 fill-zinc-950" />
+                <span>⚡ 친구들에게 초대 링크 전달하기</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setShowVoteForm(true)}
-                className="px-3 py-1.5 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                className="px-3 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border border-zinc-700"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>투표 수정</span>
@@ -279,29 +296,30 @@ export default function RoomDetailPage() {
               <button
                 type="button"
                 onClick={() => setShowDeleteModal(true)}
-                className="px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-300 border border-rose-500/20 hover:bg-rose-500/20 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                className="px-3 py-2.5 rounded-xl bg-rose-500/10 text-rose-300 border border-rose-500/20 hover:bg-rose-500/20 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5 text-rose-400" />
                 <span>내 투표 삭제</span>
               </button>
             </div>
           </div>
-        ) : null}
-
-        {/* [3] Calendar-based Date Selection UI (Show vote form if unvoted or editing) */}
-        {(!isVoted || showVoteForm) && (
-          <GuestVoteForm
-            room={room}
-            existingVote={myVote}
-            onSubmitVote={handleSubmitVote}
-            onCancel={isVoted ? () => setShowVoteForm(false) : undefined}
-          />
+        ) : (
+          /* Unvoted / Editing Form */
+          <div id="vote-form-section">
+            <GuestVoteForm
+              room={room}
+              existingVote={myVote}
+              onSubmitVote={handleSubmitVote}
+              onCancel={isVoted ? () => setShowVoteForm(false) : undefined}
+            />
+          </div>
         )}
 
-        {/* [4] & [5] Optimal Date Result (TOP 1 Focus) & Participant Names Per Date */}
+        {/* SECTION C: Golden Date Recommendation Card (TERTIARY FOCUS) */}
         <GoldenDateCard
           recommendations={goldenRecommendations}
           onConfirmDate={handleConfirmDate}
+          onShare={() => setShowShareSheet(true)}
           selectedConfirmedKey={confirmedKey}
           isHost={isHost}
         />
@@ -314,14 +332,16 @@ export default function RoomDetailPage() {
           />
         )}
 
-        {/* [6] Full Response Details / Heatmap (Collapsible Accordion) */}
-        <HeatmapGrid
-          room={room}
-          heatmapMap={heatmapMap}
-          totalVotersCount={totalVotersCount}
-        />
+        {/* SECTION D: Collapsible Full Response Details / Heatmap */}
+        {totalVotersCount > 0 && (
+          <HeatmapGrid
+            room={room}
+            heatmapMap={heatmapMap}
+            totalVotersCount={totalVotersCount}
+          />
+        )}
 
-        {/* [7] Host Room Management Section (If Host) */}
+        {/* Host Room Management Notice */}
         {isHost && (
           <div className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-2 text-xs">
             <div className="flex items-center gap-1.5 text-amber-400 font-bold">
@@ -339,7 +359,7 @@ export default function RoomDetailPage() {
         <AdBanner slotType="bottom_vote" />
       </div>
 
-      {/* Unified Share Sheet Modal */}
+      {/* Share Sheet Modal */}
       {showShareSheet && (
         <ShareSheet room={room} onClose={() => setShowShareSheet(false)} />
       )}
@@ -426,13 +446,17 @@ export default function RoomDetailPage() {
         </div>
       )}
 
-      {/* Mobile Sticky Floating CTA Bar */}
+      {/* SINGLE Mobile Sticky Floating CTA Bar */}
       <div className="fixed bottom-4 left-4 right-4 z-40 sm:hidden">
         <div className="sys-card p-2.5 bg-zinc-950/90 backdrop-blur-md border border-zinc-800 flex items-center justify-between gap-2 shadow-2xl">
           {!isVoted || showVoteForm ? (
             <button
               type="button"
-              onClick={() => setShowVoteForm(true)}
+              onClick={() => {
+                const el = document.getElementById('vote-form-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                else setShowVoteForm(true);
+              }}
               className="flex-1 sys-btn-primary h-11 text-xs font-extrabold flex items-center justify-center gap-1.5"
             >
               <VoteIcon className="w-4 h-4" />
@@ -442,10 +466,10 @@ export default function RoomDetailPage() {
             <button
               type="button"
               onClick={() => setShowShareSheet(true)}
-              className="flex-1 h-11 rounded-2xl bg-amber-400 text-zinc-950 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+              className="flex-1 h-11 rounded-2xl bg-amber-400 text-zinc-950 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer hover:bg-amber-300 transition-all"
             >
               <Share2 className="w-4 h-4 fill-zinc-950" />
-              <span>친구들에게 초대 링크 전달하기</span>
+              <span>⚡ 친구들에게 초대 링크 전달하기</span>
             </button>
           )}
         </div>
