@@ -1,5 +1,5 @@
-import { Vote, SubmitVoteInput } from '@/types/schema';
-import { SubmitVoteInputSchema } from '@/lib/validation/schemas';
+import { Vote, SubmitVoteInput, DeleteVoteInput } from '@/types/schema';
+import { SubmitVoteInputSchema, DeleteVoteInputSchema } from '@/lib/validation/schemas';
 import { supabaseServer, isSupabaseConfigured } from '@/lib/supabase/server';
 import { getVotesByRoomIdMock, submitVoteMock } from '@/lib/mockStore';
 import { hashPassword } from '@/lib/crypto';
@@ -164,4 +164,51 @@ export async function submitVote(input: SubmitVoteInput): Promise<Vote> {
   }
 
   return submitVoteMock(input);
+}
+
+export async function deleteVote(input: DeleteVoteInput): Promise<{ success: boolean }> {
+  // 1. Zod Server Validation
+  const validated = DeleteVoteInputSchema.parse(input);
+
+  const attemptKey = `${validated.room_id}_${validated.nickname.toLowerCase()}`;
+  const hashedInputPw = validated.password ? await hashPassword(validated.password) : '';
+
+  if (isSupabaseConfigured && supabaseServer) {
+    const { data: existingVotes } = await supabaseServer
+      .from('votes')
+      .select('*')
+      .eq('room_id', validated.room_id)
+      .ilike('nickname', validated.nickname);
+
+    const existing = existingVotes && existingVotes.length > 0 ? existingVotes[0] : null;
+
+    if (!existing) {
+      throw new Error('닉네임 또는 PIN이 올바르지 않습니다.');
+    }
+
+    checkRateLimit(attemptKey);
+
+    if (existing.password_hash) {
+      if (!hashedInputPw || existing.password_hash !== hashedInputPw) {
+        recordFailedAttempt(attemptKey);
+        throw new Error('닉네임 또는 PIN이 올바르지 않습니다.');
+      }
+    }
+
+    clearFailedAttempt(attemptKey);
+
+    const { error } = await supabaseServer
+      .from('votes')
+      .delete()
+      .eq('id', existing.id);
+
+    if (error) {
+      console.error('Supabase DB vote delete failed:', error.message);
+      throw new Error('투표 삭제 중 오류가 발생했습니다.');
+    }
+
+    return { success: true };
+  }
+
+  return { success: true };
 }

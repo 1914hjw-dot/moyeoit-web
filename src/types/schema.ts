@@ -69,3 +69,9 @@ export interface SubmitVoteInput {
   availability: Record<string, AvailabilityStatus>;
   note?: string;
 }
+
+export interface DeleteVoteInput {
+  room_id: string;
+  nickname: string;
+  password?: string;
+}

@@ -41,5 +41,15 @@ export const SubmitVoteInputSchema = z.object({
     .default(''),
 });
 
+export const DeleteVoteInputSchema = z.object({
+  room_id: z.string().min(1, { message: '올바른 방 번호가 필요합니다.' }),
+  nickname: z
+    .string()
+    .min(1, { message: '닉네임을 입력해 주세요.' })
+    .max(30, { message: '닉네임은 최대 30자까지 입력 가능합니다.' }),
+  password: z.string().max(20).optional().default(''),
+});
+
 export type CreateRoomInputZod = z.infer<typeof CreateRoomInputSchema>;
 export type SubmitVoteInputZod = z.infer<typeof SubmitVoteInputSchema>;
+export type DeleteVoteInputZod = z.infer<typeof DeleteVoteInputSchema>;

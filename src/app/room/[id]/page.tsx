@@ -16,7 +16,7 @@ import {
   OfflineState,
   InvalidLinkState,
 } from '@/components/ui/StateViews';
-import { Share2, Vote as VoteIcon, ArrowLeft, Sparkles, Check, Edit3, Users, Crown, Settings } from 'lucide-react';
+import { Share2, Vote as VoteIcon, ArrowLeft, Sparkles, Check, Edit3, Users, Crown, Settings, Trash2, AlertTriangle, X } from 'lucide-react';
 
 export default function RoomDetailPage() {
   const params = useParams();
@@ -35,6 +35,12 @@ export default function RoomDetailPage() {
   const [myVote, setMyVote] = useState<Vote | null>(null);
   const [showVoteForm, setShowVoteForm] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
+
+  // Vote deletion modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePin, setDeletePin] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteErrorMsg, setDeleteErrorMsg] = useState('');
 
   const [confirmedKey, setConfirmedKey] = useState<string | undefined>(undefined);
   const [confirmedDateInfo, setConfirmedDateInfo] = useState<{ date: string; timeSlot?: string } | null>(null);
@@ -83,7 +89,11 @@ export default function RoomDetailPage() {
           const found = voteList.find((v: Vote) => v.nickname.toLowerCase() === savedNickname.toLowerCase());
           if (found) {
             setMyVote(found);
+          } else {
+            setMyVote(null);
           }
+        } else {
+          setMyVote(null);
         }
       } else {
         setRoom(null);
@@ -138,6 +148,43 @@ export default function RoomDetailPage() {
 
     await loadRoomData();
     setShowVoteForm(false);
+  };
+
+  const handleDeleteVote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!myVote) return;
+
+    setIsDeleting(true);
+    setDeleteErrorMsg('');
+
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/votes`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nickname: myVote.nickname,
+          password: deletePin.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || '닉네임 또는 PIN이 올바르지 않습니다.');
+      }
+
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(`moyeoit_voted_${roomId}`);
+      }
+
+      setMyVote(null);
+      setShowDeleteModal(false);
+      setDeletePin('');
+      await loadRoomData();
+    } catch (err: any) {
+      setDeleteErrorMsg(err.message || '투표 삭제 중 오류가 발생했습니다.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleConfirmDate = (date: string, timeSlot?: string) => {
@@ -204,7 +251,7 @@ export default function RoomDetailPage() {
 
         {/* [2] Current User's Vote Status Banner */}
         {isVoted && !showVoteForm ? (
-          <div className="p-4 rounded-2xl bg-zinc-900 border border-emerald-500/30 flex items-center justify-between gap-3 shadow-md">
+          <div className="p-4 rounded-2xl bg-zinc-900 border border-emerald-500/30 flex items-center justify-between gap-3 shadow-md flex-wrap">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold shrink-0">
                 <Check className="w-4 h-4" />
@@ -214,19 +261,30 @@ export default function RoomDetailPage() {
                   {myVote?.nickname}님의 가능 날짜 투표가 완료되었습니다!
                 </p>
                 <p className="text-[11px] text-zinc-400">
-                  결과를 확인하거나 일정이 변경되면 언제든 수정할 수 있습니다.
+                  결과를 확인하거나 일정이 변경되면 언제든 수정/삭제할 수 있습니다.
                 </p>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowVoteForm(true)}
-              className="shrink-0 px-3 py-1.5 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>투표 수정</span>
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowVoteForm(true)}
+                className="px-3 py-1.5 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>투표 수정</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                className="px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-300 border border-rose-500/20 hover:bg-rose-500/20 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                <span>내 투표 삭제</span>
+              </button>
+            </div>
           </div>
         ) : null}
 
@@ -284,6 +342,88 @@ export default function RoomDetailPage() {
       {/* Unified Share Sheet Modal */}
       {showShareSheet && (
         <ShareSheet room={room} onClose={() => setShowShareSheet(false)} />
+      )}
+
+      {/* User Vote Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="sys-card w-full max-w-sm p-5 space-y-4 border-rose-500/30 bg-zinc-950 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
+              <div className="flex items-center gap-2 text-rose-400">
+                <AlertTriangle className="w-5 h-5" />
+                <h3 className="text-sm font-extrabold text-zinc-100">내 투표 삭제</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeletePin('');
+                  setDeleteErrorMsg('');
+                }}
+                className="text-zinc-500 hover:text-zinc-300 p-1 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs text-zinc-300">
+              <p className="font-bold">
+                내 투표를 삭제할까요?
+              </p>
+              <p className="text-zinc-400 leading-relaxed">
+                삭제하면 이 방에서 <strong className="text-zinc-200">{myVote?.nickname}</strong>님의 투표 정보가 완전히 제거되며 집계 결과가 갱신됩니다.
+              </p>
+            </div>
+
+            {deleteErrorMsg && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold">
+                ⚠️ {deleteErrorMsg}
+              </div>
+            )}
+
+            <form onSubmit={handleDeleteVote} className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-zinc-300 block mb-1">
+                  수정용 비밀번호 4자리 <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  inputMode="numeric"
+                  maxLength={4}
+                  autoComplete="off"
+                  value={deletePin}
+                  onChange={(e) => setDeletePin(e.target.value)}
+                  placeholder="투표할 때 설정한 숫자 4자리"
+                  className="w-full sys-input h-11 text-xs"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeletePin('');
+                    setDeleteErrorMsg('');
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold hover:bg-zinc-700 cursor-pointer"
+                >
+                  취소
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isDeleting}
+                  className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer shadow-md"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{isDeleting ? '삭제 중...' : '내 투표 삭제하기'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Mobile Sticky Floating CTA Bar */}

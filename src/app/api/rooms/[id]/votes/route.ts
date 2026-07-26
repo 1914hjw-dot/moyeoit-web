@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getVotesByRoomId, submitVote, VoteConflictError } from '@/lib/services/voteService';
+import { getVotesByRoomId, submitVote, deleteVote, VoteConflictError } from '@/lib/services/voteService';
 
 function hasPrototypePollutionKey(obj: any): boolean {
   if (!obj || typeof obj !== 'object') return false;
@@ -66,6 +66,47 @@ export async function POST(
 
     return NextResponse.json(
       { success: false, error: error.message || '투표 저장 중 오류가 발생했습니다.' },
+      { status: 400 }
+    );
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  // 1. Content-Type Header Verification
+  const contentType = req.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    return NextResponse.json(
+      { success: false, error: '올바른 Content-Type (application/json)이 아닙니다.' },
+      { status: 415 }
+    );
+  }
+
+  try {
+    const { id } = await params;
+    const body = await req.json();
+
+    // 2. Prototype Pollution Prevention Check (Own Keys Validation)
+    if (hasPrototypePollutionKey(body)) {
+      return NextResponse.json(
+        { success: false, error: '부정확한 요청 바디입니다.' },
+        { status: 400 }
+      );
+    }
+
+    await deleteVote({
+      room_id: id,
+      nickname: body.nickname,
+      password: body.password,
+    });
+
+    return NextResponse.json({ success: true, message: '투표가 성공적으로 삭제되었습니다.' });
+  } catch (error: any) {
+    console.error('API /api/rooms/[id]/votes DELETE Error:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || '투표 삭제 중 오류가 발생했습니다.' },
       { status: 400 }
     );
   }
