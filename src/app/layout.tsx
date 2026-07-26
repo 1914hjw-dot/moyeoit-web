@@ -77,6 +77,13 @@ export default function RootLayout({
           }}
         />
 
+        {/* Kakao JavaScript SDK */}
+        <Script
+          src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+        />
+
         {/* Google Analytics 4 Script */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=G-MOYEOIT2026`}
