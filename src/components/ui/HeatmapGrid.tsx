@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Users, CheckCircle2, HelpCircle, XCircle, MessageSquare } from 'lucide-react';
-import { HeatmapCellData, Room } from '@/types/schema';
+import { Room, HeatmapCellData } from '@/types/schema';
 import { formatKoreanDate } from '@/lib/analytics';
+import { LayoutGrid, ChevronDown, ChevronUp, UserCheck, HelpCircle, UserX, X } from 'lucide-react';
 
 interface HeatmapGridProps {
   room: Room;
@@ -17,200 +17,153 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = ({
   totalVotersCount,
 }) => {
   const [selectedCell, setSelectedCell] = useState<HeatmapCellData | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  const getHeatmapClass = (cell: HeatmapCellData) => {
-    if (cell.possible_count === totalVotersCount && totalVotersCount > 0) {
-      return 'heatmap-cell-gold';
-    }
-    if (cell.ratio >= 0.75) return 'heatmap-cell-high';
-    if (cell.ratio >= 0.4) return 'heatmap-cell-medium';
-    if (cell.ratio > 0) return 'heatmap-cell-low';
-    return 'heatmap-cell-0';
+  const cells = Object.values(heatmapMap);
+
+  if (cells.length === 0) return null;
+
+  const getHeatmapBg = (ratio: number, count: number) => {
+    if (count === 0) return 'bg-zinc-900/60 text-zinc-500 border-zinc-800';
+    if (ratio === 1) return 'bg-emerald-500 text-zinc-950 border-emerald-400 font-extrabold shadow-md';
+    if (ratio >= 0.66) return 'bg-emerald-500/30 text-emerald-300 border-emerald-500/40 font-bold';
+    if (ratio >= 0.33) return 'bg-amber-500/20 text-amber-300 border-amber-500/30 font-semibold';
+    return 'bg-zinc-900 text-zinc-400 border-zinc-800';
   };
 
   return (
-    <div className="w-full linear-card p-5 space-y-4 my-6">
-      {/* Header & Legend */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
-        <div>
-          <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-            <Users className="w-4 h-4 text-emerald-400" />
-            <span>투표 현황 히트맵</span>
+    <div className="w-full sys-card p-5 space-y-4 my-6">
+      {/* Collapsible Section Header */}
+      <div
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center justify-between cursor-pointer select-none"
+      >
+        <div className="flex items-center gap-2">
+          <LayoutGrid className="w-4 h-4 text-indigo-400" />
+          <h3 className="text-sm font-extrabold text-zinc-100 tracking-tight">
+            전체 참여자 응답 현황 (히트맵)
           </h3>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            참여인원 <strong className="text-zinc-100">{totalVotersCount}명</strong> 기준 (셀 클릭 시 세부 명단 표시)
+        </div>
+
+        <button
+          type="button"
+          className="text-xs font-bold text-zinc-400 hover:text-zinc-200 flex items-center gap-1 bg-zinc-900 px-3 py-1 rounded-xl border border-zinc-800"
+        >
+          <span>{isExpanded ? '접기' : '전체 상세 보기'}</span>
+          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
+      </div>
+
+      {/* Accordion / Collapsible Container */}
+      {isExpanded && (
+        <div className="space-y-4 pt-2 border-t border-zinc-800/80 animate-in fade-in duration-200">
+          <p className="text-xs text-zinc-400">
+            날짜 카드를 클릭하면 해당 일자의 참석자/불참자 상세 명단을 확인할 수 있습니다.
           </p>
+
+          {/* Grid Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+            {cells.map((cell) => {
+              const bgClass = getHeatmapBg(cell.ratio, cell.possible_count);
+              return (
+                <button
+                  key={cell.key}
+                  type="button"
+                  onClick={() => setSelectedCell(cell)}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${bgClass}`}
+                >
+                  <span className="text-[11px] font-semibold block truncate">
+                    {formatKoreanDate(cell.date)}
+                  </span>
+                  {cell.time_slot && (
+                    <span className="text-[10px] block opacity-80 truncate">
+                      [{cell.time_slot}]
+                    </span>
+                  )}
+                  <div className="flex items-end justify-between mt-2">
+                    <span className="text-sm font-black">
+                      {cell.possible_count}/{totalVotersCount}명
+                    </span>
+                    <span className="text-[10px] font-bold opacity-75">
+                      {Math.round(cell.ratio * 100)}%
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center justify-end gap-3 text-[11px] text-zinc-400 pt-1">
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> 전원 가능
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/40 inline-block" /> 66% 이상
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500/30 inline-block" /> 33% 이상
+            </span>
+          </div>
         </div>
+      )}
 
-        {/* Legend */}
-        <div className="flex items-center gap-2 text-[11px] font-medium text-zinc-400">
-          <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded bg-amber-400 inline-block" />
-            <span>100%</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded bg-emerald-500 inline-block" />
-            <span>높음</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded bg-zinc-800 inline-block" />
-            <span>낮음</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-        {Object.values(heatmapMap).map((cell) => {
-          const isGold = cell.possible_count === totalVotersCount && totalVotersCount > 0;
-          return (
-            <button
-              key={cell.key}
-              type="button"
-              onClick={() => setSelectedCell(cell)}
-              className={`p-3.5 rounded-xl transition-all text-left flex flex-col justify-between h-24 cursor-pointer ${getHeatmapClass(
-                cell
-              )} hover:scale-[1.02] active:scale-95`}
-            >
-              <div>
-                <span className="text-xs font-bold block">
-                  {formatKoreanDate(cell.date)}
-                </span>
-                {cell.time_slot && (
-                  <span className="text-[11px] opacity-90 block">
-                    [{cell.time_slot}]
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-end justify-between mt-2">
-                <div>
-                  <span className="text-lg font-black">{cell.possible_count}</span>
-                  <span className="text-xs opacity-75">/{totalVotersCount}명</span>
-                </div>
-
-                {isGold ? (
-                  <span className="text-[10px] bg-zinc-950 text-amber-300 font-extrabold px-1.5 py-0.5 rounded">
-                    PERFECT
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-semibold opacity-80">
-                    {Math.round(cell.ratio * 100)}%
-                  </span>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Attendee / Absentee Detail Modal */}
+      {/* Detail Modal */}
       {selectedCell && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="linear-card p-6 max-w-md w-full border-zinc-700 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
               <div>
-                <h4 className="text-sm font-bold text-zinc-100">
-                  {formatKoreanDate(selectedCell.date)} {selectedCell.time_slot ? `[${selectedCell.time_slot}]` : ''}
+                <h4 className="text-sm font-extrabold text-zinc-100">
+                  {formatKoreanDate(selectedCell.date)}
                 </h4>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  총 {totalVotersCount}명 중 <span className="text-emerald-400 font-bold">{selectedCell.possible_count}명 가능</span>
-                </p>
+                {selectedCell.time_slot && (
+                  <p className="text-xs text-amber-300 font-medium">
+                    [{selectedCell.time_slot}]
+                  </p>
+                )}
               </div>
+
               <button
                 type="button"
                 onClick={() => setSelectedCell(null)}
-                className="text-zinc-400 hover:text-zinc-100 text-sm font-bold p-1"
+                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Attendance breakdown lists */}
-            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-              {/* Possible */}
-              <div>
-                <div className="flex items-center gap-1 text-xs font-bold text-emerald-400 mb-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>참석 가능 ({selectedCell.attendees.filter((a) => a.status === 'possible').length}명)</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedCell.attendees
-                    .filter((a) => a.status === 'possible')
-                    .map((a, i) => (
-                      <span
-                        key={i}
-                        className="px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
-                      >
-                        {a.nickname}
-                      </span>
-                    ))}
-                  {selectedCell.attendees.filter((a) => a.status === 'possible').length === 0 && (
-                    <span className="text-xs text-zinc-600 italic">없음</span>
-                  )}
-                </div>
-              </div>
+            {/* Attendee List */}
+            <div className="space-y-2 text-xs max-h-60 overflow-y-auto">
+              <p className="font-bold text-zinc-300">참석 가능 현황 ({selectedCell.attendees.length}명)</p>
+              {selectedCell.attendees.map((att, idx) => {
+                const isPossible = att.status === 'possible';
+                const isMaybe = att.status === 'maybe';
 
-              {/* Maybe */}
-              <div>
-                <div className="flex items-center gap-1 text-xs font-bold text-amber-400 mb-1">
-                  <HelpCircle className="w-3.5 h-3.5" />
-                  <span>조율/세모 ({selectedCell.attendees.filter((a) => a.status === 'maybe').length}명)</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedCell.attendees
-                    .filter((a) => a.status === 'maybe')
-                    .map((a, i) => (
-                      <span
-                        key={i}
-                        className="px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20"
-                      >
-                        {a.nickname}
-                      </span>
-                    ))}
-                  {selectedCell.attendees.filter((a) => a.status === 'maybe').length === 0 && (
-                    <span className="text-xs text-zinc-600 italic">없음</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Impossible */}
-              <div>
-                <div className="flex items-center gap-1 text-xs font-bold text-rose-400 mb-1">
-                  <XCircle className="w-3.5 h-3.5" />
-                  <span>불가능 ({selectedCell.attendees.filter((a) => a.status === 'impossible').length}명)</span>
-                </div>
-                <div className="space-y-1">
-                  {selectedCell.attendees
-                    .filter((a) => a.status === 'impossible')
-                    .map((a, i) => (
-                      <div
-                        key={i}
-                        className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-xs flex items-center justify-between"
-                      >
-                        <span className="font-semibold text-rose-300">{a.nickname}</span>
-                        {a.note && (
-                          <span className="text-zinc-400 text-[11px] flex items-center gap-1">
-                            <MessageSquare className="w-3 h-3 text-zinc-500" />
-                            <span>{a.note}</span>
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  {selectedCell.attendees.filter((a) => a.status === 'impossible').length === 0 && (
-                    <span className="text-xs text-zinc-600 italic block">없음</span>
-                  )}
-                </div>
-              </div>
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-2 rounded-xl bg-zinc-950/60 border border-zinc-800"
+                  >
+                    <span className="font-semibold text-zinc-200">{att.nickname}</span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 ${
+                        isPossible
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : isMaybe
+                          ? 'bg-amber-500/20 text-amber-400'
+                          : 'bg-rose-500/20 text-rose-400'
+                      }`}
+                    >
+                      {isPossible && <UserCheck className="w-3 h-3" />}
+                      {isMaybe && <HelpCircle className="w-3 h-3" />}
+                      {!isPossible && !isMaybe && <UserX className="w-3 h-3" />}
+                      {isPossible ? '가능' : isMaybe ? '세모' : '불가'}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-
-            <button
-              type="button"
-              onClick={() => setSelectedCell(null)}
-              className="w-full v-btn-secondary py-2 text-xs font-bold"
-            >
-              닫기
-            </button>
           </div>
         </div>
       )}
