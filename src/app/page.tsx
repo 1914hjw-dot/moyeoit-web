@@ -58,6 +58,10 @@ export default function HomePage() {
         throw new Error(data.error || '방 생성에 실패했습니다. 다시 시도해 주세요.');
       }
 
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`moyeoit_host_${data.room.id}`, 'true');
+      }
+
       router.push(`/room/${data.room.id}`);
     } catch (err: any) {
       console.error(err);

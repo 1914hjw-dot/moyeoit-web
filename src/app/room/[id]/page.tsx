@@ -16,7 +16,7 @@ import {
   OfflineState,
   InvalidLinkState,
 } from '@/components/ui/StateViews';
-import { Share2, Vote as VoteIcon, ArrowLeft, Sparkles, Check, Edit3, Users } from 'lucide-react';
+import { Share2, Vote as VoteIcon, ArrowLeft, Sparkles, Check, Edit3, Users, Crown, Settings } from 'lucide-react';
 
 export default function RoomDetailPage() {
   const params = useParams();
@@ -27,6 +27,9 @@ export default function RoomDetailPage() {
   const [votes, setVotes] = useState<Vote[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
+
+  // Host role tracking
+  const [isHost, setIsHost] = useState(false);
 
   // My vote tracking
   const [myVote, setMyVote] = useState<Vote | null>(null);
@@ -69,6 +72,10 @@ export default function RoomDetailPage() {
         const votesData = await votesRes.json();
         const voteList = votesRes.ok && votesData.success ? votesData.votes : [];
         setVotes(voteList);
+
+        // Check if user is host
+        const isHostStored = typeof window !== 'undefined' ? localStorage.getItem(`moyeoit_host_${roomId}`) === 'true' : false;
+        setIsHost(isHostStored);
 
         // Check if user has previously voted stored in local storage nickname key
         const savedNickname = typeof window !== 'undefined' ? localStorage.getItem(`moyeoit_voted_${roomId}`) : null;
@@ -142,8 +149,8 @@ export default function RoomDetailPage() {
   return (
     <main className="min-h-screen max-w-3xl mx-auto px-4 py-4 space-y-5 flex flex-col justify-between pb-24 sm:pb-8">
       <div className="space-y-5">
-        {/* Section A: Compact Header & Single Share Button */}
-        <header className="flex items-center justify-between py-2 border-b border-[var(--color-border-subtle)]">
+        {/* Navigation Top Bar */}
+        <header className="flex items-center justify-between py-2 border-b border-zinc-800">
           <button
             type="button"
             onClick={() => router.push('/')}
@@ -160,18 +167,28 @@ export default function RoomDetailPage() {
               className="px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-amber-400 text-zinc-950 hover:bg-amber-300 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
             >
               <Share2 className="w-3.5 h-3.5 fill-zinc-950" />
-              <span>초대하기</span>
+              <span>초대 링크 공유</span>
             </button>
           </div>
         </header>
 
-        {/* Room Header Info */}
-        <section className="sys-card p-5 space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-bold text-amber-300 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>{room.schedule_type === 'date_time' ? '날짜 + 시간대 조율' : '날짜 전용 조율'}</span>
-            </span>
+        {/* [1] Room Title & Participant Count & Host/Guest Badge */}
+        <section className="sys-card p-5 space-y-2 border-zinc-800 shadow-xl bg-zinc-950">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold text-amber-300 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-amber-400" />
+                <span>{room.schedule_type === 'date_time' ? '날짜 + 시간대 조율' : '날짜 전용 조율'}</span>
+              </span>
+
+              {isHost && (
+                <span className="text-[10px] font-bold text-amber-400 bg-amber-400/20 border border-amber-400/30 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  <Crown className="w-3 h-3 text-amber-400 fill-amber-400" />
+                  <span>방장</span>
+                </span>
+              )}
+            </div>
+
             <span className="text-xs text-zinc-400 font-medium flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-emerald-400" />
               <span>참여자 <strong className="text-emerald-400 font-bold">{totalVotersCount}명</strong></span>
@@ -185,9 +202,8 @@ export default function RoomDetailPage() {
           )}
         </section>
 
-        {/* Section B: Voted vs Unvoted State Separation */}
+        {/* [2] Current User's Vote Status Banner */}
         {isVoted && !showVoteForm ? (
-          /* State B: Already Voted Summary Banner */
           <div className="p-4 rounded-2xl bg-zinc-900 border border-emerald-500/30 flex items-center justify-between gap-3 shadow-md">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold shrink-0">
@@ -212,8 +228,10 @@ export default function RoomDetailPage() {
               <span>투표 수정</span>
             </button>
           </div>
-        ) : (
-          /* State A: Primary Voting Form */
+        ) : null}
+
+        {/* [3] Calendar-based Date Selection UI (Show vote form if unvoted or editing) */}
+        {(!isVoted || showVoteForm) && (
           <GuestVoteForm
             room={room}
             existingVote={myVote}
@@ -222,14 +240,15 @@ export default function RoomDetailPage() {
           />
         )}
 
-        {/* TOP 1 Decision Focus Card */}
+        {/* [4] & [5] Optimal Date Result (TOP 1 Focus) & Participant Names Per Date */}
         <GoldenDateCard
           recommendations={goldenRecommendations}
           onConfirmDate={handleConfirmDate}
           selectedConfirmedKey={confirmedKey}
+          isHost={isHost}
         />
 
-        {/* Affiliate Recommendation Widget when date confirmed */}
+        {/* Affiliate Reservation Buttons (When Date Confirmed) */}
         {confirmedDateInfo && (
           <AffiliateButtons
             confirmedDate={confirmedDateInfo.date}
@@ -237,14 +256,28 @@ export default function RoomDetailPage() {
           />
         )}
 
-        {/* Collapsible Heatmap Matrix */}
+        {/* [6] Full Response Details / Heatmap (Collapsible Accordion) */}
         <HeatmapGrid
           room={room}
           heatmapMap={heatmapMap}
           totalVotersCount={totalVotersCount}
         />
 
-        {/* Single Non-intrusive Bottom Ad */}
+        {/* [7] Host Room Management Section (If Host) */}
+        {isHost && (
+          <div className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-2 text-xs">
+            <div className="flex items-center gap-1.5 text-amber-400 font-bold">
+              <Settings className="w-4 h-4" />
+              <span>방장 모임 관리 안내</span>
+            </div>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              방장은 최적 약속 날짜 1위 카드에서 <strong>[이 날짜로 모임 확정하기]</strong> 버튼을 통해 약속 날짜를 최종 확정할 수 있습니다.
+              초대 링크를 단톡방에 전달하여 참여자의 가능 날짜 투표를 완료해 주세요.
+            </p>
+          </div>
+        )}
+
+        {/* Single Bottom Ad Banner */}
         <AdBanner slotType="bottom_vote" />
       </div>
 
@@ -269,7 +302,7 @@ export default function RoomDetailPage() {
             <button
               type="button"
               onClick={() => setShowShareSheet(true)}
-              className="flex-1 h-11 rounded-2xl bg-amber-400 text-zinc-950 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md"
+              className="flex-1 h-11 rounded-2xl bg-amber-400 text-zinc-950 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
             >
               <Share2 className="w-4 h-4 fill-zinc-950" />
               <span>친구들에게 초대 링크 전달하기</span>

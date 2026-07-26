@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Crown, Sparkles, CheckCircle2, AlertCircle, ThumbsUp, ChevronRight } from 'lucide-react';
+import { Crown, Sparkles, CheckCircle2, AlertCircle, ThumbsUp, ShieldCheck } from 'lucide-react';
 import { GoldenDateRecommendation } from '@/types/schema';
 import { formatKoreanDate } from '@/lib/analytics';
 
@@ -9,12 +9,14 @@ interface GoldenDateCardProps {
   recommendations: GoldenDateRecommendation[];
   onConfirmDate?: (date: string, timeSlot?: string) => void;
   selectedConfirmedKey?: string;
+  isHost?: boolean;
 }
 
 export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
   recommendations,
   onConfirmDate,
   selectedConfirmedKey,
+  isHost = false,
 }) => {
   if (recommendations.length === 0) {
     return (
@@ -50,8 +52,15 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
 
   const isTop1Confirmed = selectedConfirmedKey === top1.key;
 
+  // Format attendee names nicely (e.g. "민수 · 지현 · 수진" or "민수 · 지현 외 3명")
+  const formatAttendeeNames = (names: string[]): string => {
+    if (names.length === 0) return '가능 인원 없음';
+    if (names.length <= 3) return names.join(' · ');
+    return `${names.slice(0, 3).join(' · ')} 외 ${names.length - 3}명`;
+  };
+
   return (
-    <div className="w-full space-y-4 my-6">
+    <div className="w-full space-y-4 my-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Crown className="w-4 h-4 text-amber-400 fill-amber-400" />
@@ -98,7 +107,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
           <div className="flex items-start gap-1.5 text-emerald-400">
             <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             <span className="font-semibold text-zinc-200">
-              참석: {top1.attendee_names.length > 0 ? top1.attendee_names.join(', ') : '가능 인원 없음'}
+              가능: {formatAttendeeNames(top1.attendee_names)}
             </span>
           </div>
 
@@ -106,14 +115,15 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
             <div className="flex items-start gap-1.5 text-rose-400">
               <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               <span className="font-medium text-zinc-400">
-                불참: {top1.absentee_list.map((a) => `${a.nickname}${a.note ? `(${a.note})` : ''}`).join(', ')}
+                불참: {top1.absentee_list.map((a) => a.nickname).slice(0, 3).join(' · ')}
+                {top1.absentee_list.length > 3 ? ` 외 ${top1.absentee_list.length - 3}명` : ''}
               </span>
             </div>
           )}
         </div>
 
-        {/* Single Primary Confirmation Action */}
-        {onConfirmDate && (
+        {/* Role-based Action Button: Only Host can confirm date, participants view status */}
+        {isHost && onConfirmDate ? (
           <button
             type="button"
             onClick={() => {
@@ -127,9 +137,14 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
             }`}
           >
             <ThumbsUp className="w-4 h-4" />
-            <span>{isTop1Confirmed ? '이 날짜로 약속 확정 완료!' : '이 날짜로 모임 확정하기'}</span>
+            <span>{isTop1Confirmed ? '이 날짜로 약속 확정 완료!' : '👑 방장: 이 날짜로 모임 확정하기'}</span>
           </button>
-        )}
+        ) : isTop1Confirmed ? (
+          <div className="w-full py-3 rounded-2xl text-xs font-extrabold bg-emerald-500 text-zinc-950 flex items-center justify-center gap-2 shadow-md">
+            <ShieldCheck className="w-4 h-4" />
+            <span>🎉 방장에 의해 이 날짜로 모임이 확정되었습니다!</span>
+          </div>
+        ) : null}
       </div>
 
       {/* TOP 2 & TOP 3 Runner-up Compact Rows */}
@@ -154,15 +169,18 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
                     {rec.time_slot && (
                       <span className="text-[11px] text-amber-300 ml-1.5">[{rec.time_slot}]</span>
                     )}
+                    <p className="text-[10px] text-zinc-400 mt-0.5">
+                      가능: {formatAttendeeNames(rec.attendee_names)}
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="text-zinc-400 font-medium">
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-zinc-400 font-medium text-[11px]">
                     <strong className="text-emerald-400 font-bold">{rec.possible_count}명</strong> / {rec.total_voters}명
                   </span>
 
-                  {onConfirmDate && (
+                  {isHost && onConfirmDate && (
                     <button
                       type="button"
                       onClick={() => onConfirmDate(rec.date, rec.time_slot)}
