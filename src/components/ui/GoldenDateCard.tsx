@@ -22,13 +22,13 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
 }) => {
   if (recommendations.length === 0) {
     return (
-      <div className="w-full sys-card p-6 text-center space-y-3 border-dashed border-zinc-800 my-4 bg-zinc-950/60">
-        <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+      <div className="w-full sys-card p-6 text-center space-y-3 border-dashed border-slate-200 my-4 bg-white">
+        <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-sm">
           <Users className="w-5 h-5" />
         </div>
         <div className="space-y-1">
-          <h4 className="text-sm font-extrabold text-zinc-200">👥 아직 다른 참여자의 응답이 없어요</h4>
-          <p className="text-xs text-zinc-400">
+          <h4 className="text-sm font-extrabold text-slate-900">👥 아직 다른 참여자의 응답이 없어요</h4>
+          <p className="text-xs text-slate-500">
             친구들에게 링크를 공유하면 가장 많은 인원이 가능한 최적의 날짜를 찾아드려요!
           </p>
         </div>
@@ -36,9 +36,9 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
           <button
             type="button"
             onClick={onShare}
-            className="px-4 py-2 rounded-xl bg-amber-400 text-zinc-950 font-extrabold text-xs inline-flex items-center gap-1.5 shadow-md cursor-pointer hover:bg-amber-300 transition-all"
+            className="px-4 py-2.5 rounded-2xl bg-indigo-600 text-white font-black text-xs inline-flex items-center gap-1.5 shadow-md shadow-indigo-500/20 cursor-pointer hover:bg-indigo-700 transition-all"
           >
-            <Share2 className="w-3.5 h-3.5 fill-zinc-950" />
+            <Share2 className="w-3.5 h-3.5 fill-white" />
             <span>친구들에게 초대 링크 전달하기</span>
           </button>
         )}
@@ -78,58 +78,58 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
     <div className="w-full space-y-4 my-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Crown className="w-4 h-4 text-amber-400 fill-amber-400" />
-          <h3 className="text-sm font-extrabold text-zinc-100 tracking-tight">
+          <Crown className="w-4 h-4 text-amber-500 fill-amber-500" />
+          <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
             🎉 현재 가장 추천하는 날짜
           </h3>
         </div>
-        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
           자동 계산됨
         </span>
       </div>
 
       {/* TOP 1 Focused Primary Decision Card */}
       <div
-        className={`relative rounded-3xl p-5 transition-all ${
+        className={`relative rounded-3xl p-6 transition-all ${
           isTop1Confirmed
-            ? 'bg-gradient-to-b from-emerald-950/40 via-zinc-900 to-zinc-900 border-2 border-emerald-500 shadow-xl'
-            : 'bg-gradient-to-b from-amber-500/10 via-zinc-900 to-zinc-900 border-2 border-amber-400/80 shadow-xl'
+            ? 'bg-gradient-to-b from-emerald-50 via-white to-white border-2 border-emerald-500 shadow-xl shadow-emerald-500/10'
+            : 'bg-gradient-to-b from-amber-50 via-white to-white border-2 border-amber-300 shadow-xl shadow-amber-500/10'
         }`}
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-400 text-zinc-950 uppercase tracking-wider">
+          <span className="px-3 py-0.5 rounded-full text-xs font-black bg-amber-400 text-slate-950 uppercase tracking-wider shadow-sm">
             🏆 1위 최적 날짜
           </span>
-          <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+          <span className="text-xs font-extrabold text-emerald-600 flex items-center gap-1">
             <Sparkles className="w-3.5 h-3.5" />
             {top1.match_percentage}% 참석 ({top1.possible_count}/{top1.total_voters}명)
           </span>
         </div>
 
         <div className="my-3">
-          <h4 className="text-xl sm:text-2xl font-black text-zinc-100">
+          <h4 className="text-xl sm:text-2xl font-black text-slate-900">
             {formatKoreanDate(top1.date)}
           </h4>
           {top1.time_slot && (
-            <span className="text-xs font-bold text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 inline-block mt-1">
+            <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-lg border border-amber-200 inline-block mt-1">
               [{top1.time_slot}]
             </span>
           )}
         </div>
 
         {/* Attendee Names Breakdown */}
-        <div className="p-3 rounded-2xl bg-zinc-950/70 border border-zinc-800 space-y-1.5 text-xs mb-4">
-          <div className="flex items-start gap-1.5 text-emerald-400">
-            <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            <span className="font-semibold text-zinc-200">
+        <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5 text-xs mb-4">
+          <div className="flex items-start gap-1.5 text-emerald-700">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-600" />
+            <span className="font-bold text-slate-800">
               가능: {formatAttendeeNames(top1.attendee_names)}
             </span>
           </div>
 
           {top1.absentee_list.length > 0 && (
-            <div className="flex items-start gap-1.5 text-rose-400">
-              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-              <span className="font-medium text-zinc-400">
+            <div className="flex items-start gap-1.5 text-rose-600">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-rose-500" />
+              <span className="font-semibold text-slate-500">
                 불참: {top1.absentee_list.map((a) => a.nickname).slice(0, 3).join(' · ')}
                 {top1.absentee_list.length > 3 ? ` 외 ${top1.absentee_list.length - 3}명` : ''}
               </span>
@@ -137,7 +137,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
           )}
         </div>
 
-        {/* Role-based Action Button: Only Host can confirm date, participants view status */}
+        {/* Role-based Action Button */}
         {isHost && onConfirmDate ? (
           <button
             type="button"
@@ -145,18 +145,18 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
               triggerConfetti();
               onConfirmDate(top1.date, top1.time_slot);
             }}
-            className={`w-full py-3 rounded-2xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
+            className={`w-full py-3.5 rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
               isTop1Confirmed
-                ? 'bg-emerald-500 text-zinc-950'
+                ? 'bg-emerald-600 text-white shadow-emerald-600/20'
                 : 'sys-btn-primary'
             }`}
           >
-            <ThumbsUp className="w-4 h-4" />
+            <ThumbsUp className="w-4 h-4 text-white" />
             <span>{isTop1Confirmed ? '이 날짜로 약속 확정 완료!' : '👑 방장: 이 날짜로 모임 확정하기'}</span>
           </button>
         ) : isTop1Confirmed ? (
-          <div className="w-full py-3 rounded-2xl text-xs font-extrabold bg-emerald-500 text-zinc-950 flex items-center justify-center gap-2 shadow-md">
-            <ShieldCheck className="w-4 h-4" />
+          <div className="w-full py-3.5 rounded-2xl text-xs font-black bg-emerald-600 text-white flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20">
+            <ShieldCheck className="w-4 h-4 text-white" />
             <span>🎉 방장에 의해 이 날짜로 모임이 확정되었습니다!</span>
           </div>
         ) : null}
@@ -171,38 +171,38 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
             return (
               <div
                 key={rec.key}
-                className="p-3.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 flex items-center justify-between gap-3 text-xs"
+                className="p-3.5 rounded-2xl bg-white border border-slate-200/80 flex items-center justify-between gap-3 text-xs shadow-sm"
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-lg bg-zinc-800 text-zinc-400 flex items-center justify-center font-bold text-[11px]">
+                  <span className="w-7 h-7 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-black text-xs">
                     {rec.rank}위
                   </span>
                   <div>
-                    <span className="font-bold text-zinc-200">
+                    <span className="font-extrabold text-slate-900">
                       {formatKoreanDate(rec.date)}
                     </span>
                     {rec.time_slot && (
-                      <span className="text-[11px] text-amber-300 ml-1.5">[{rec.time_slot}]</span>
+                      <span className="text-[11px] text-amber-700 font-bold ml-1.5">[{rec.time_slot}]</span>
                     )}
-                    <p className="text-[10px] text-zinc-400 mt-0.5">
+                    <p className="text-[11px] text-slate-500 mt-0.5">
                       가능: {formatAttendeeNames(rec.attendee_names)}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-zinc-400 font-medium text-[11px]">
-                    <strong className="text-emerald-400 font-bold">{rec.possible_count}명</strong> / {rec.total_voters}명
+                  <span className="text-slate-500 font-semibold text-[11px]">
+                    <strong className="text-emerald-600 font-extrabold">{rec.possible_count}명</strong> / {rec.total_voters}명
                   </span>
 
                   {isHost && onConfirmDate && (
                     <button
                       type="button"
                       onClick={() => onConfirmDate(rec.date, rec.time_slot)}
-                      className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                      className={`px-3 py-1 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer ${
                         isConfirmed
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
                       {isConfirmed ? '확정됨' : '선택'}

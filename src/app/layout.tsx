@@ -8,7 +8,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#09090b',
+  themeColor: '#fafafc',
 };
 
 export const metadata: Metadata = {
@@ -55,7 +55,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className="dark overflow-x-hidden">
+    <html lang="ko" className="light bg-[#FAFAFC] text-slate-900 overflow-x-hidden">
       <head>
         {/* Schema.org Structured Data for Rich Snippets */}
         <script
@@ -98,7 +98,7 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className="antialiased selection:bg-indigo-500/30 selection:text-indigo-200 min-h-screen overflow-x-hidden pb-[env(safe-area-inset-bottom)]">
+      <body className="antialiased selection:bg-indigo-500/20 selection:text-indigo-900 min-h-screen overflow-x-hidden pb-[env(safe-area-inset-bottom)]">
         {children}
       </body>
     </html>

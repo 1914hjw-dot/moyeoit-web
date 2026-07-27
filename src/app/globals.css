@@ -2,21 +2,21 @@
 
 @layer base {
   :root {
-    /* 1. Color Palette Tokens */
-    --color-canvas: #09090b;
-    --color-surface-1: #121215;
-    --color-surface-2: #18181c;
-    --color-surface-3: #222227;
+    /* 1. Color Palette Tokens - Bright Modern Light Theme */
+    --color-canvas: #fafafc;
+    --color-surface-1: #ffffff;
+    --color-surface-2: #f4f5f8;
+    --color-surface-3: #ebecef;
 
-    --color-border-subtle: rgba(255, 255, 255, 0.08);
-    --color-border-strong: rgba(255, 255, 255, 0.16);
+    --color-border-subtle: #e2e8f0;
+    --color-border-strong: #cbd5e1;
 
-    --color-text-main: #f4f4f5;
-    --color-text-muted: #a1a1aa;
-    --color-text-subtle: #71717a;
+    --color-text-main: #0f172a;
+    --color-text-muted: #475569;
+    --color-text-subtle: #64748b;
 
-    --color-primary-bg: #f4f4f5;
-    --color-primary-fg: #09090b;
+    --color-primary-bg: #4f46e5;
+    --color-primary-fg: #ffffff;
     --color-accent-indigo: #6366f1;
 
     --color-status-possible: #10b981;
@@ -39,15 +39,15 @@
     --space-12: 48px;
 
     /* 4. Border Radius Tokens */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
     --radius-full: 9999px;
 
-    /* 5. Elevation Tokens */
-    --shadow-elevation-1: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
-    --shadow-elevation-2: 0 4px 16px -4px rgba(0, 0, 0, 0.4);
-    --shadow-elevation-3: 0 8px 32px -8px rgba(0, 0, 0, 0.6);
+    /* 5. Elevation Tokens - Soft Glassmorphic Shadows */
+    --shadow-elevation-1: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+    --shadow-elevation-2: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+    --shadow-elevation-3: 0 12px 32px -4px rgba(15, 23, 42, 0.1);
 
     /* 6. Motion & Timing Tokens */
     --motion-ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
@@ -70,7 +70,7 @@
     overflow-x: hidden;
     letter-spacing: -0.015em;
     background-image: 
-      radial-gradient(ellipse at 50% 0%, rgba(99, 102, 241, 0.05) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 0%, rgba(99, 102, 241, 0.04) 0%, transparent 60%),
       radial-gradient(ellipse at 80% 100%, rgba(16, 185, 129, 0.03) 0%, transparent 50%);
     background-attachment: fixed;
   }
@@ -94,7 +94,7 @@
   }
 }
 
-/* System Card Utility (Stripe & Vercel Uniform Padding & Border) */
+/* System Card Utility (Bright Modern White Card System) */
 .sys-card {
   background-color: var(--color-surface-1);
   border: 1px solid var(--color-border-subtle);
@@ -105,7 +105,7 @@
 
 .sys-card-interactive:hover {
   border-color: var(--color-border-strong);
-  background-color: var(--color-surface-2);
+  background-color: #ffffff;
   transform: translateY(-1px);
   box-shadow: var(--shadow-elevation-3);
 }
@@ -115,7 +115,7 @@
   height: var(--height-btn-md);
   background-color: var(--color-primary-bg);
   color: var(--color-primary-fg);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 0.875rem;
   border-radius: var(--radius-md);
   padding-left: var(--space-4);
@@ -125,14 +125,14 @@
   justify-content: center;
   gap: var(--space-2);
   transition: all var(--motion-duration-fast) var(--motion-ease-standard);
-  box-shadow: var(--shadow-elevation-1);
+  box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.25);
   cursor: pointer;
 }
 
 .sys-btn-primary:hover {
-  background-color: #ffffff;
+  background-color: #4338ca;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 20px 0 rgba(79, 70, 229, 0.35);
 }
 
 .sys-btn-primary:active {
@@ -141,10 +141,10 @@
 
 .sys-btn-secondary {
   height: var(--height-btn-md);
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: #f1f5f9;
   color: var(--color-text-main);
   border: 1px solid var(--color-border-subtle);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.875rem;
   border-radius: var(--radius-md);
   padding-left: var(--space-4);
@@ -158,77 +158,77 @@
 }
 
 .sys-btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.09);
+  background-color: #e2e8f0;
   border-color: var(--color-border-strong);
 }
 
 /* System Input Height & Focus System */
 .sys-input {
   height: var(--height-input);
-  background-color: var(--color-surface-2);
+  background-color: #f8fafc;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   padding-left: var(--space-4);
   padding-right: var(--space-4);
   color: var(--color-text-main);
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   transition: all var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .sys-input:focus {
   outline: none;
-  border-color: var(--color-border-strong);
-  background-color: var(--color-surface-3);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+  border-color: #6366f1;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
-/* Heatmap Refined Color Scales */
+/* Heatmap Refined Color Scales (Light Mode) */
 .heatmap-cell-0 {
-  background-color: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  color: var(--color-text-subtle);
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #94a3b8;
 }
 
 .heatmap-cell-low {
-  background-color: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  color: #6ee7b7;
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
 }
 
 .heatmap-cell-medium {
-  background-color: rgba(16, 185, 129, 0.35);
-  border: 1px solid rgba(16, 185, 129, 0.5);
-  color: #ffffff;
+  background-color: #d1fae5;
+  border: 1px solid #6ee7b7;
+  color: #065f46;
 }
 
 .heatmap-cell-high {
-  background-color: rgba(16, 185, 129, 0.7);
-  border: 1px solid rgba(52, 211, 153, 0.8);
+  background-color: #10b981;
+  border: 1px solid #059669;
   color: #ffffff;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
 
 .heatmap-cell-gold {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.95) 0%, rgba(234, 179, 8, 0.95) 100%);
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   border: 1px solid #fef08a;
-  color: #09090b;
+  color: #ffffff;
   font-weight: 800;
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
 }
 
-/* Custom Minimal Scrollbar */
+/* Custom Minimal Scrollbar (Light Mode) */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(9, 9, 11, 0.5);
+  background: rgba(241, 245, 249, 0.8);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: #cbd5e1;
   border-radius: var(--radius-full);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: #94a3b8;
 }

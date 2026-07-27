@@ -202,11 +202,11 @@ export default function RoomDetailPage() {
     <main className="min-h-screen max-w-3xl mx-auto px-4 py-4 space-y-5 flex flex-col justify-between pb-24 sm:pb-8">
       <div className="space-y-5">
         {/* Navigation Top Bar */}
-        <header className="flex items-center justify-between py-2 border-b border-zinc-800">
+        <header className="flex items-center justify-between py-2 border-b border-slate-200/80">
           <button
             type="button"
             onClick={() => router.push('/')}
-            className="flex items-center gap-1 text-xs font-bold text-zinc-400 hover:text-zinc-100 transition-all cursor-pointer"
+            className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-900 transition-all cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>홈으로</span>
@@ -216,7 +216,7 @@ export default function RoomDetailPage() {
             <button
               type="button"
               onClick={() => setShowShareSheet(true)}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-zinc-800 text-zinc-200 border border-zinc-700 hover:bg-zinc-700 transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-1.5 rounded-2xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <Share2 className="w-3.5 h-3.5" />
               <span>초대 링크 공유</span>
@@ -225,69 +225,69 @@ export default function RoomDetailPage() {
         </header>
 
         {/* SECTION A: Room Header */}
-        <section className="sys-card p-5 space-y-2 border-zinc-800 shadow-xl bg-zinc-950">
+        <section className="sys-card p-5 sm:p-6 space-y-2 border-slate-200/80 shadow-sm bg-white">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold text-amber-300 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-400" />
+              <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-indigo-600" />
                 <span>{room.schedule_type === 'date_time' ? '날짜 + 시간대 조율' : '날짜 전용 조율'}</span>
               </span>
 
               {isHost && (
-                <span className="text-[10px] font-bold text-amber-400 bg-amber-400/20 border border-amber-400/30 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                  <Crown className="w-3 h-3 text-amber-400 fill-amber-400" />
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  <Crown className="w-3 h-3 text-amber-500 fill-amber-500" />
                   <span>방장</span>
                 </span>
               )}
             </div>
 
-            <span className="text-xs text-zinc-400 font-medium flex items-center gap-1">
-              <Users className="w-3.5 h-3.5 text-emerald-400" />
-              <span>참여자 <strong className="text-emerald-400 font-bold">{totalVotersCount}명</strong></span>
+            <span className="text-xs text-slate-500 font-semibold flex items-center gap-1">
+              <Users className="w-3.5 h-3.5 text-emerald-600" />
+              <span>참여자 <strong className="text-emerald-600 font-extrabold">{totalVotersCount}명</strong></span>
             </span>
           </div>
 
-          <h1 className="text-xl sm:text-2xl font-black text-zinc-100 leading-tight">{displayTitle}</h1>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">{displayTitle}</h1>
 
           {room.description && (
-            <p className="text-xs text-zinc-400">{room.description}</p>
+            <p className="text-xs sm:text-sm text-slate-500">{room.description}</p>
           )}
         </section>
 
         {/* SECTION B: User Vote Section (PRIMARY FOCUS) */}
         {isVoted && !showVoteForm ? (
           /* Submission Success State */
-          <div className="sys-card p-5 border-emerald-500/30 bg-emerald-950/20 space-y-4 shadow-lg">
+          <div className="sys-card p-5 sm:p-6 border-emerald-200 bg-emerald-50/50 space-y-4 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-bold shrink-0 shadow-md shadow-emerald-500/20">
                   <Check className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-zinc-100">
+                  <h3 className="text-sm sm:text-base font-black text-slate-900">
                     🎉 {myVote?.nickname}님의 가능 날짜 투표가 저장되었습니다!
                   </h3>
-                  <p className="text-xs text-zinc-400 mt-0.5">
+                  <p className="text-xs text-slate-600 mt-0.5">
                     일정이 변경되면 언제든 아래 버튼으로 수정하거나 삭제할 수 있습니다.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-1 border-t border-emerald-500/20 flex-wrap">
+            <div className="flex items-center gap-2 pt-1 border-t border-emerald-100 flex-wrap">
               <button
                 type="button"
                 onClick={() => setShowShareSheet(true)}
-                className="flex-1 min-w-[140px] py-2.5 rounded-xl bg-amber-400 text-zinc-950 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer hover:bg-amber-300 transition-all"
+                className="flex-1 min-w-[140px] py-2.5 rounded-2xl bg-indigo-600 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-500/20 cursor-pointer hover:bg-indigo-700 transition-all"
               >
-                <Share2 className="w-3.5 h-3.5 fill-zinc-950" />
+                <Share2 className="w-3.5 h-3.5 fill-white" />
                 <span>⚡ 친구들에게 초대 링크 전달하기</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setShowVoteForm(true)}
-                className="px-3 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border border-zinc-700"
+                className="px-3.5 py-2.5 rounded-2xl bg-white text-slate-700 hover:bg-slate-100 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border border-slate-200 shadow-sm"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>투표 수정</span>
@@ -296,9 +296,9 @@ export default function RoomDetailPage() {
               <button
                 type="button"
                 onClick={() => setShowDeleteModal(true)}
-                className="px-3 py-2.5 rounded-xl bg-rose-500/10 text-rose-300 border border-rose-500/20 hover:bg-rose-500/20 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                className="px-3.5 py-2.5 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
               >
-                <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                <Trash2 className="w-3.5 h-3.5 text-rose-500" />
                 <span>내 투표 삭제</span>
               </button>
             </div>
@@ -343,12 +343,12 @@ export default function RoomDetailPage() {
 
         {/* Host Room Management Notice */}
         {isHost && (
-          <div className="p-4 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-2 text-xs">
-            <div className="flex items-center gap-1.5 text-amber-400 font-bold">
-              <Settings className="w-4 h-4" />
+          <div className="p-4 sm:p-5 rounded-3xl bg-amber-50/70 border border-amber-200/80 space-y-2 text-xs">
+            <div className="flex items-center gap-1.5 text-amber-800 font-black">
+              <Settings className="w-4 h-4 text-amber-600" />
               <span>방장 모임 관리 안내</span>
             </div>
-            <p className="text-[11px] text-zinc-400 leading-relaxed">
+            <p className="text-[11px] sm:text-xs text-amber-900/80 leading-relaxed">
               방장은 최적 약속 날짜 1위 카드에서 <strong>[이 날짜로 모임 확정하기]</strong> 버튼을 통해 약속 날짜를 최종 확정할 수 있습니다.
               초대 링크를 단톡방에 전달하여 참여자의 가능 날짜 투표를 완료해 주세요.
             </p>
@@ -366,12 +366,12 @@ export default function RoomDetailPage() {
 
       {/* User Vote Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="sys-card w-full max-w-sm p-5 space-y-4 border-rose-500/30 bg-zinc-950 shadow-2xl">
-            <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
-              <div className="flex items-center gap-2 text-rose-400">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="sys-card w-full max-w-sm p-5 space-y-4 border-rose-200 bg-white shadow-2xl rounded-3xl">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2 text-rose-600">
                 <AlertTriangle className="w-5 h-5" />
-                <h3 className="text-sm font-extrabold text-zinc-100">내 투표 삭제</h3>
+                <h3 className="text-sm font-black text-slate-900">내 투표 삭제</h3>
               </div>
               <button
                 type="button"
@@ -380,31 +380,31 @@ export default function RoomDetailPage() {
                   setDeletePin('');
                   setDeleteErrorMsg('');
                 }}
-                className="text-zinc-500 hover:text-zinc-300 p-1 cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-2 text-xs text-zinc-300">
-              <p className="font-bold">
+            <div className="space-y-1.5 text-xs text-slate-600">
+              <p className="font-bold text-slate-900">
                 내 투표를 삭제할까요?
               </p>
-              <p className="text-zinc-400 leading-relaxed">
-                삭제하면 이 방에서 <strong className="text-zinc-200">{myVote?.nickname}</strong>님의 투표 정보가 완전히 제거되며 집계 결과가 갱신됩니다.
+              <p className="text-slate-500 leading-relaxed">
+                삭제하면 이 방에서 <strong className="text-slate-800">{myVote?.nickname}</strong>님의 투표 정보가 완전히 제거되며 집계 결과가 갱신됩니다.
               </p>
             </div>
 
             {deleteErrorMsg && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold">
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-semibold">
                 ⚠️ {deleteErrorMsg}
               </div>
             )}
 
             <form onSubmit={handleDeleteVote} className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-zinc-300 block mb-1">
-                  수정용 비밀번호 4자리 <span className="text-rose-400">*</span>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  수정용 비밀번호 4자리 <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -427,7 +427,7 @@ export default function RoomDetailPage() {
                     setDeletePin('');
                     setDeleteErrorMsg('');
                   }}
-                  className="flex-1 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold hover:bg-zinc-700 cursor-pointer"
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 cursor-pointer"
                 >
                   취소
                 </button>
@@ -435,7 +435,7 @@ export default function RoomDetailPage() {
                 <button
                   type="submit"
                   disabled={isDeleting}
-                  className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer shadow-md"
+                  className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer shadow-md shadow-rose-600/20"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>{isDeleting ? '삭제 중...' : '내 투표 삭제하기'}</span>
@@ -448,7 +448,7 @@ export default function RoomDetailPage() {
 
       {/* SINGLE Mobile Sticky Floating CTA Bar */}
       <div className="fixed bottom-4 left-4 right-4 z-40 sm:hidden">
-        <div className="sys-card p-2.5 bg-zinc-950/90 backdrop-blur-md border border-zinc-800 flex items-center justify-between gap-2 shadow-2xl">
+        <div className="sys-card p-2.5 bg-white/90 backdrop-blur-md border border-slate-200/80 flex items-center justify-between gap-2 shadow-xl shadow-slate-900/10 rounded-2xl">
           {!isVoted || showVoteForm ? (
             <button
               type="button"
@@ -457,7 +457,7 @@ export default function RoomDetailPage() {
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
                 else setShowVoteForm(true);
               }}
-              className="flex-1 sys-btn-primary h-11 text-xs font-extrabold flex items-center justify-center gap-1.5"
+              className="flex-1 sys-btn-primary h-11 text-xs font-black flex items-center justify-center gap-1.5"
             >
               <VoteIcon className="w-4 h-4" />
               <span>✨ 내 가능 날짜 선택하기</span>
@@ -466,9 +466,9 @@ export default function RoomDetailPage() {
             <button
               type="button"
               onClick={() => setShowShareSheet(true)}
-              className="flex-1 h-11 rounded-2xl bg-amber-400 text-zinc-950 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer hover:bg-amber-300 transition-all"
+              className="flex-1 h-11 rounded-xl bg-indigo-600 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 cursor-pointer hover:bg-indigo-700 transition-all"
             >
-              <Share2 className="w-4 h-4 fill-zinc-950" />
+              <Share2 className="w-4 h-4 fill-white" />
               <span>⚡ 친구들에게 초대 링크 전달하기</span>
             </button>
           )}
