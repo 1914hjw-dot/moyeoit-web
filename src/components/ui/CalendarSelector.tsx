@@ -21,7 +21,11 @@ export const CalendarSelector: React.FC<CalendarSelectorProps> = ({
   timeSlots,
   onChangeTimeSlots,
 }) => {
-  const [currentMonthDate, setCurrentMonthDate] = useState(new Date(2026, 6, 1)); // 2026 July
+  // Dynamically initialize to current year & month
+  const [currentMonthDate, setCurrentMonthDate] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
 
   const year = currentMonthDate.getFullYear();
   const month = currentMonthDate.getMonth();

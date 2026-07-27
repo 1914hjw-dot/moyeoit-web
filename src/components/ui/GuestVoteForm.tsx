@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { UserCheck, Sparkles, ShieldCheck, Calendar as CalendarIcon, ChevronDown, ChevronUp, MessageSquare, Lock } from 'lucide-react';
+import { UserCheck, Sparkles, ShieldCheck, Calendar as CalendarIcon, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 import { Room, Vote, AvailabilityStatus, SubmitVoteInput } from '@/types/schema';
 import { CalendarVoteSelector } from '@/components/ui/CalendarVoteSelector';
 
@@ -26,7 +26,6 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const nicknameInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto focus nickname input on mount
   useEffect(() => {
     if (!existingVote && nicknameInputRef.current) {
       nicknameInputRef.current.focus();
@@ -48,7 +47,6 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
     }
   }
 
-  // Pre-fill all candidate dates to 'possible' by default for instant opt-out voting
   const [availability, setAvailability] = useState<Record<string, AvailabilityStatus>>(() => {
     if (existingVote?.availability) {
       return { ...existingVote.availability };
@@ -64,7 +62,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
     e.preventDefault();
     setErrorMsg('');
     if (!nickname.trim()) {
-      alert('닉네임을 입력해 주세요.');
+      alert('이름 또는 닉네임을 입력해 주세요.');
       return;
     }
 
@@ -86,19 +84,19 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="w-full space-y-4 my-2">
-      <div className="sys-card p-5 sm:p-7 space-y-5 border-slate-200/80 shadow-md bg-white">
+      <div className="sys-card p-4 sm:p-6 space-y-4 border-slate-200/80 shadow-md bg-white rounded-3xl">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 font-black">
               <CalendarIcon className="w-4 h-4" />
             </div>
             <div>
               <h3 className="text-sm sm:text-base font-black text-slate-900">
-                {existingVote ? '내 가능 날짜 수정하기' : '✨ 내 가능 날짜 선택하기'}
+                {existingVote ? '내 가능 날짜 수정' : '✨ 내 가능 날짜 선택하기'}
               </h3>
               <p className="text-[11px] text-slate-500">
-                후보 날짜는 기본 '가능'으로 설정되어 있어 불가능한 날짜만 눌러 해제하시면 됩니다.
+                기본 '가능' 상태입니다. 안 되는 날짜만 눌러 해제해 주세요.
               </p>
             </div>
           </div>
@@ -107,7 +105,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
             <button
               type="button"
               onClick={onCancel}
-              className="text-xs text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 cursor-pointer font-bold transition-all"
+              className="text-xs text-slate-500 hover:text-slate-900 px-3 py-1 rounded-xl bg-slate-100 border border-slate-200 cursor-pointer font-bold"
             >
               취소
             </button>
@@ -115,14 +113,14 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
         </div>
 
         {errorMsg && (
-          <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-semibold">
+          <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-semibold">
             ⚠️ {errorMsg}
           </div>
         )}
 
-        {/* 1. Primary Required Input: Nickname */}
+        {/* 1. Essential Input: Nickname */}
         <div>
-          <label className="text-xs font-bold text-slate-700 block mb-1.5">
+          <label className="text-xs font-bold text-slate-700 block mb-1">
             이름 / 닉네임 <span className="text-rose-500">*</span>
           </label>
           <input
@@ -130,19 +128,17 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
             type="text"
             required
             autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
-            placeholder="친구들이 나를 알아볼 수 있는 이름을 입력하세요"
+            placeholder="이름 또는 닉네임을 입력하세요"
             className="w-full sys-input h-11 text-xs sm:text-sm font-semibold"
           />
         </div>
 
-        {/* 2. Primary Required Action: Candidate Date Selection */}
-        <div className="space-y-1.5">
+        {/* 2. Core Action: Candidate Date Selection Calendar */}
+        <div className="space-y-1">
           <label className="text-xs font-bold text-slate-700 block">
-            언제 가능하세요? <span className="text-rose-500">*</span>
+            가능 날짜 조율 <span className="text-rose-500">*</span>
           </label>
           <CalendarVoteSelector
             candidateDates={room.candidate_dates}
@@ -153,16 +149,16 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
           />
         </div>
 
-        {/* 3. Collapsible Optional Options (Note & PIN) */}
-        <div className="pt-1">
+        {/* 3. Optional Accordion (Note & PIN) */}
+        <div>
           <button
             type="button"
             onClick={() => setShowOptionalFields((prev) => !prev)}
-            className="w-full py-2.5 px-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-slate-600 hover:text-slate-900 text-xs font-bold flex items-center justify-between transition-all cursor-pointer"
+            className="w-full py-2 px-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-slate-600 hover:text-slate-900 text-xs font-bold flex items-center justify-between transition-all cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
               <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
-              <span>+ 메모 및 수정 PIN 설정 (선택 사항)</span>
+              <span>+ 메모 및 비밀번호 (선택)</span>
             </span>
             {showOptionalFields ? (
               <ChevronUp className="w-4 h-4 text-slate-400" />
@@ -172,26 +168,22 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
           </button>
 
           {showOptionalFields && (
-            <div className="mt-3 p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3.5 animate-in fade-in duration-150">
+            <div className="mt-2 p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  한줄 메모 <span className="text-slate-400 font-normal">(선택)</span>
-                </label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">한줄 메모</label>
                 <input
                   type="text"
                   autoComplete="off"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="예: 27일은 저녁 7시 이후만 가능해요!"
+                  placeholder="예: 27일은 저녁 7시 이후 가능"
                   className="w-full sys-input h-10 text-xs bg-white"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-700 block">
-                    나중에 수정할 때 사용할 PIN <span className="text-slate-400 font-normal">(숫자 4자리, 선택)</span>
-                  </label>
+                  <label className="text-xs font-bold text-slate-700 block">수정용 비밀번호 4자리</label>
                   <span className="text-[10px] text-emerald-600 flex items-center gap-0.5 font-bold">
                     <ShieldCheck className="w-3 h-3" />
                     <span>암호화 보관</span>
@@ -204,7 +196,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
                   autoComplete="off"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="추후 투표 수정/삭제 시 본인 확인용 숫자 4자리"
+                  placeholder="숫자 4자리"
                   className="w-full sys-input h-10 text-xs bg-white"
                 />
               </div>
@@ -212,7 +204,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
           )}
         </div>
 
-        {/* 4. Primary Submit CTA */}
+        {/* 4. Main Submit Button */}
         <button
           type="submit"
           disabled={isSubmitting}

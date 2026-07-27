@@ -13,14 +13,8 @@ export default function HomePage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [scheduleType, setScheduleType] = useState<ScheduleType>('date_only');
-  const [selectedDates, setSelectedDates] = useState<string[]>([
-    '2026-07-26',
-    '2026-07-27',
-    '2026-07-28',
-    '2026-07-31',
-    '2026-08-01',
-    '2026-08-02',
-  ]);
+  // Initial selected candidate dates set to empty array for real room creation
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [timeSlots, setTimeSlots] = useState<string[]>([
     '오전 (10:00~14:00)',
     '오후 (14:00~18:00)',
