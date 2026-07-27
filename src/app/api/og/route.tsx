@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const title = searchParams.get('title') || '약속 날짜 조율하기';
-    const type = searchParams.get('type') || '모여잇 • 5초 날짜 조율기';
+    const type = searchParams.get('type') || '모여잇 • 5초 약속 날짜 조율기';
 
     return new ImageResponse(
       (
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
             flexDirection: 'column',
             alignItems: 'flex-start',
             justifyContent: 'space-between',
-            backgroundColor: '#09090b',
+            backgroundColor: '#fafafc',
             padding: '60px',
             fontFamily: 'sans-serif',
           }}
@@ -34,16 +34,16 @@ export async function GET(req: NextRequest) {
           >
             <div
               style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
-                backgroundColor: '#f4f4f5',
-                color: '#09090b',
+                width: '44px',
+                height: '44px',
+                borderRadius: '14px',
+                backgroundColor: '#0f172a',
+                color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: '900',
-                fontSize: '20px',
+                fontSize: '22px',
               }}
             >
               📅
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
               style={{
                 fontSize: '22px',
                 fontWeight: '800',
-                color: '#f59e0b',
+                color: '#0f172a',
                 letterSpacing: '-0.02em',
               }}
             >
@@ -66,15 +66,20 @@ export async function GET(req: NextRequest) {
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
-              maxWidth: '900px',
+              maxWidth: '960px',
+              backgroundColor: '#ffffff',
+              padding: '40px',
+              borderRadius: '24px',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 10px 30px rgba(15, 23, 42, 0.06)',
             }}
           >
             <span
               style={{
-                fontSize: '52px',
+                fontSize: '48px',
                 fontWeight: '900',
-                color: '#f4f4f5',
-                lineHeight: '1.2',
+                color: '#0f172a',
+                lineHeight: '1.25',
                 letterSpacing: '-0.03em',
               }}
             >
@@ -83,12 +88,12 @@ export async function GET(req: NextRequest) {
 
             <span
               style={{
-                fontSize: '24px',
-                color: '#a1a1aa',
-                fontWeight: '500',
+                fontSize: '22px',
+                color: '#64748b',
+                fontWeight: '600',
               }}
             >
-              로그인 0초! 단톡방 친구들과 10초 만에 가능 날짜를 투표해 주세요.
+              회원가입 0초! 단톡방 친구들과 가능 날짜를 한눈에 투표해보세요.
             </span>
           </div>
 
@@ -99,8 +104,8 @@ export async function GET(req: NextRequest) {
               alignItems: 'center',
               justifyContent: 'space-between',
               width: '100%',
-              paddingTop: '30px',
-              borderTop: '2px solid rgba(255, 255, 255, 0.1)',
+              paddingTop: '24px',
+              borderTop: '1px solid #e2e8f0',
             }}
           >
             <div
@@ -108,26 +113,26 @@ export async function GET(req: NextRequest) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                backgroundColor: 'rgba(16, 185, 129, 0.15)',
-                color: '#34d399',
+                backgroundColor: '#ecfdf5',
+                color: '#047857',
                 padding: '10px 20px',
                 borderRadius: '999px',
-                fontSize: '20px',
-                fontWeight: '700',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
+                fontSize: '18px',
+                fontWeight: '800',
+                border: '1px solid #a7f3d0',
               }}
             >
-              ⚡ 10초 만에 가능 일자 선택하기
+              ✓ 10초 만에 모임 약속 날짜 찾기
             </div>
 
             <span
               style={{
                 fontSize: '20px',
-                color: '#71717a',
-                fontWeight: '600',
+                color: '#94a3b8',
+                fontWeight: '700',
               }}
             >
-              moyeoit.com
+              moyeoit-web.vercel.app
             </span>
           </div>
         </div>

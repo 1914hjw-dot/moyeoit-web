@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import './globals.css';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://moyeoit-web.vercel.app';
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -12,30 +14,50 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: '모여잇 (Moyeoit) - 5초 약속 날짜 조율기',
-  description: '로그인 0초, 카톡 투표보다 10배 빠르고 예쁜 무회원 약속 날짜 조율기. 전원 참석 가능한 최적의 황금 날짜 TOP 3와 컬러 히트맵을 10초 만에 확인하세요.',
+  metadataBase: new URL(SITE_URL),
+  title: '모여잇 | 친구들과 모임 약속 날짜 정하기 5초 조율기',
+  description: '회원가입 없이 친구들과 모임 약속 날짜를 빠르게 정해보세요. 카카오톡 단톡방에 링크 하나로 조율하고 전원 참석 가능한 최적의 날짜를 10초 만에 찾아드립니다.',
   keywords: [
+    '약속 날짜 정하기',
+    '모임 날짜 정하기',
+    '날짜 투표',
+    '친구 약속 날짜 조율',
+    '모임 일정 조율',
     '모여잇',
     'Moyeoit',
-    '날짜 조율',
-    '약속 조율',
-    '모임 날짜 정하기',
     'When2meet 한국어',
     '카카오톡 날짜 투표',
-    '무회원 일정 조율',
+    '비회원 일정 조율',
   ],
   authors: [{ name: '모여잇 팀' }],
+  alternates: {
+    canonical: SITE_URL,
+  },
+  verification: {
+    google: 'X36LQ_xozdgroPuhx_5qpdjavg-KFGbc2GccGHASLTc',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   openGraph: {
-    title: '모여잇 (Moyeoit) - 5초 약속 날짜 조율기',
-    description: '로그인 0초, 단톡방 친구들과 10초 만에 가능 날짜를 투표하세요. 전원 참석 가능한 최적의 날짜를 자동으로 알려줍니다.',
-    url: 'https://moyeoit.com',
+    title: '모여잇 | 친구들과 모임 약속 날짜 정하기 5초 조율기',
+    description: '회원가입 없이 친구들과 모임 약속 날짜를 빠르게 정해보세요. 카카오톡 단톡방에 링크 하나로 가능 날짜를 투표하고 최적의 약속 날짜를 자동 계산합니다.',
+    url: SITE_URL,
     siteName: '모여잇 (Moyeoit)',
     images: [
       {
-        url: 'https://moyeoit.com/api/og?title=%EC%96%B8%EC%A0%9C%20%EB%A7%8C%EB%82%A0%EA%B9%8C%3F%20%EB%AA%A8%EC%97%AC%EC%9E%87%EC%97%90%EC%84%9C%20%EB%B0%94%EB%A1%9C%20%EC%A0%95%ED%95%B4%EC%9A%94',
+        url: `${SITE_URL}/api/og?title=${encodeURIComponent('친구들과 약속 날짜, 모여잇으로 10초 만에 정해요!')}`,
         width: 1200,
         height: 630,
-        alt: '모여잇 5초 약속 날짜 조율기',
+        alt: '모여잇 모임 약속 날짜 조율기',
       },
     ],
     locale: 'ko_KR',
@@ -43,9 +65,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: '모여잇 (Moyeoit) - 5초 약속 날짜 조율기',
-    description: '로그인 0초, 단톡방 친구들과 10초 만에 가능 날짜를 투표하세요.',
-    images: ['https://moyeoit.com/api/og?title=%EB%AA%A8%EC%97%AC%EC%9E%87'],
+    title: '모여잇 | 친구들과 모임 약속 날짜 정하기 5초 조율기',
+    description: '회원가입 없이 친구들과 모임 약속 날짜를 빠르게 정해보세요.',
+    images: [`${SITE_URL}/api/og?title=${encodeURIComponent('모여잇 모임 약속 날짜 조율기')}`],
   },
 };
 
@@ -54,26 +76,45 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLdWebSite = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: '모여잇 (Moyeoit)',
+    url: SITE_URL,
+    description: '회원가입 없이 링크 하나로 친구들과 약속 날짜를 빠르게 조율하는 서비스',
+    inLanguage: 'ko-KR',
+  };
+
+  const jsonLdWebApp = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: '모여잇 (Moyeoit)',
+    url: SITE_URL,
+    applicationCategory: 'UtilityApplication',
+    operatingSystem: 'All',
+    browserRequirements: 'Requires JavaScript. Requires HTML5.',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'KRW',
+    },
+    description: '로그인 0초, 비회원 모임 약속 날짜 5초 조율 서비스',
+  };
+
   return (
     <html lang="ko" className="light bg-[#FAFAFC] text-slate-900 overflow-x-hidden">
       <head>
-        {/* Schema.org Structured Data for Rich Snippets */}
+        {/* Schema.org Structured Data */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'WebApplication',
-              name: '모여잇 (Moyeoit)',
-              applicationCategory: 'UtilityApplication',
-              operatingSystem: 'All',
-              offers: {
-                '@type': 'Offer',
-                price: '0',
-                priceCurrency: 'KRW',
-              },
-              description: '로그인 0초 무회원 5초 약속 날짜 조율기',
-            }),
+            __html: JSON.stringify(jsonLdWebSite),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLdWebApp),
           }}
         />
 
