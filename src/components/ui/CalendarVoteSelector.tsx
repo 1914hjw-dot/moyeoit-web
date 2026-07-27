@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { AvailabilityStatus, HeatmapCellData } from '@/types/schema';
-import { ChevronLeft, ChevronRight, Check, HelpCircle, X, CheckCheck, Calendar as CalendarIcon, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCheck, X, Calendar as CalendarIcon, Sparkles } from 'lucide-react';
 
 interface CalendarVoteSelectorProps {
   candidateDates: string[]; // ['2026-08-01', '2026-08-02', ...]
@@ -221,14 +221,14 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
         ))}
       </div>
 
-      {/* 42-Cell Month Grid with Soft Light Glassmorphism */}
+      {/* 42-Cell Month Grid */}
       <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
         {calendarDays.map((cell, idx) => {
           if (!cell.isCurrentMonth) {
             return (
               <div
                 key={idx}
-                className="h-14 rounded-2xl border border-transparent p-1 text-[11px] text-slate-300 select-none opacity-20 pointer-events-none"
+                className="h-12 sm:h-14 rounded-2xl border border-transparent p-1 text-[11px] text-slate-300 select-none opacity-20 pointer-events-none"
               >
                 {cell.dayNum}
               </div>
@@ -239,7 +239,7 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
             return (
               <div
                 key={idx}
-                className="h-14 rounded-2xl border border-slate-100 bg-slate-50/50 p-1 text-slate-400 flex flex-col justify-between select-none opacity-40"
+                className="h-12 sm:h-14 rounded-2xl border border-slate-100 bg-slate-50/50 p-1 text-slate-400 flex flex-col justify-between select-none opacity-40"
               >
                 <span className="text-[11px] font-medium pl-1">{cell.dayNum}</span>
               </div>
@@ -253,7 +253,6 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
 
           const isPossible = status === 'possible';
           const isMaybe = status === 'maybe';
-          const isImpossible = status === 'impossible';
 
           return (
             <button
@@ -262,7 +261,7 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
               disabled={readOnly}
               aria-pressed={isPossible}
               onClick={() => handleToggleStatus(key)}
-              className={`h-16 sm:h-18 rounded-2xl p-1.5 sm:p-2 flex flex-col justify-between transition-all text-left cursor-pointer border shadow-sm active:scale-95 ${
+              className={`h-13 sm:h-15 rounded-2xl p-1.5 sm:p-2 flex flex-col justify-between transition-all text-left cursor-pointer border shadow-sm active:scale-95 ${
                 isPossible
                   ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 hover:bg-emerald-100 ring-1 ring-emerald-400/30'
                   : isMaybe
@@ -272,27 +271,13 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
             >
               <div className="flex items-center justify-between w-full">
                 <span className="text-xs sm:text-sm font-black">{cell.dayNum}</span>
-                <span
-                  className={`text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${
-                    isPossible
-                      ? 'bg-emerald-500 text-white shadow-sm'
-                      : isMaybe
-                      ? 'bg-amber-500 text-white shadow-sm'
-                      : 'bg-rose-500 text-white shadow-sm'
-                  }`}
-                >
-                  {isPossible && <Check className="w-2.5 h-2.5" />}
-                  {isMaybe && <HelpCircle className="w-2.5 h-2.5" />}
-                  {isImpossible && <X className="w-2.5 h-2.5" />}
-                  <span>{isPossible ? '가능' : isMaybe ? '세모' : '불가'}</span>
-                </span>
               </div>
 
               {/* Attendance Count Preview */}
               {heatmap && heatmap.total_votes > 0 ? (
                 <div className="w-full">
                   <div className="text-[10px] font-extrabold text-slate-700 flex items-center justify-between">
-                    <span className="text-emerald-600">{heatmap.possible_count}명 가능</span>
+                    <span className="text-emerald-600">{heatmap.possible_count}명</span>
                     <span className="text-[9px] text-slate-400">{Math.round(heatmap.ratio * 100)}%</span>
                   </div>
                 </div>
@@ -308,13 +293,13 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
 
       {/* Legend Footer */}
       <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
-        <span className="text-slate-400">날짜 터치 시 [가능➔불가➔세모] 순서 변경</span>
+        <span className="text-slate-400">날짜 터치 시 [가능➔불가➔미정] 순서 변경</span>
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1 text-emerald-600 font-bold">
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> 가능
           </span>
           <span className="flex items-center gap-1 text-amber-600 font-bold">
-            <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> 세모
+            <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> 미정
           </span>
           <span className="flex items-center gap-1 text-rose-600 font-bold">
             <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" /> 불가

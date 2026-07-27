@@ -158,7 +158,7 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = ({
                       {isPossible && <UserCheck className="w-3 h-3" />}
                       {isMaybe && <HelpCircle className="w-3 h-3" />}
                       {!isPossible && !isMaybe && <UserX className="w-3 h-3" />}
-                      {isPossible ? '가능' : isMaybe ? '세모' : '불가'}
+                      {isPossible ? '가능' : isMaybe ? '미정' : '불가'}
                     </span>
                   </div>
                 );
