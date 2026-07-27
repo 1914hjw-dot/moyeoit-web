@@ -45,7 +45,7 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = ({
           </div>
           <div>
             <h3 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight">
-              📊 전체 참여자 응답 현황 (히트맵)
+              전체 참여자 응답 현황 (히트맵)
             </h3>
             <p className="text-[11px] text-slate-400">
               {isExpanded ? '클릭하여 히트맵 접기' : '모든 참여자의 가능 날짜 한눈에 확인하기'}
@@ -155,9 +155,7 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = ({
                       className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
                         isPossible
                           ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
-                          : isMaybe
-                          ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                          : 'bg-rose-100 text-rose-900 border border-rose-200'
+                          : 'bg-amber-100 text-amber-900 border border-amber-200'
                       }`}
                     >
                       {isPossible && <UserCheck className="w-3 h-3" />}

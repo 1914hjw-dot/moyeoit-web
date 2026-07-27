@@ -226,7 +226,7 @@ export default function HomePage() {
               className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-400 hover:bg-slate-100 text-left transition-all group cursor-pointer"
             >
               <p className="text-xs font-black text-slate-900 group-hover:text-slate-900">
-                🎉 7월 모여잇 정기 스터디 모임
+                7월 모여잇 정기 스터디 모임
               </p>
               <p className="text-[11px] text-slate-500 mt-1">
                 날짜 전용 조율 • 3명 투표 완료 (히트맵 테스트)
@@ -239,7 +239,7 @@ export default function HomePage() {
               className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-400 hover:bg-slate-100 text-left transition-all group cursor-pointer"
             >
               <p className="text-xs font-black text-slate-900 group-hover:text-slate-900">
-                ☕ 주말 파티룸 모임 (시간대 지정)
+                주말 파티룸 모임 (시간대 지정)
               </p>
               <p className="text-[11px] text-slate-500 mt-1">
                 날짜 + 오전/오후/저녁 시간대 조율 샘플

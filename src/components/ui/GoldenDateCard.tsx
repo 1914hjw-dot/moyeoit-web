@@ -27,7 +27,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
           <Users className="w-5 h-5" />
         </div>
         <div className="space-y-1">
-          <h4 className="text-sm font-extrabold text-slate-900">👥 아직 다른 참여자의 응답이 없어요</h4>
+          <h4 className="text-sm font-extrabold text-slate-900">아직 다른 참여자의 응답이 없어요</h4>
           <p className="text-xs text-slate-500">
             친구들에게 링크를 공유하면 가장 많은 인원이 가능한 최적의 날짜를 찾아드려요!
           </p>
@@ -80,7 +80,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
         <div className="flex items-center gap-2">
           <Crown className="w-4 h-4 text-emerald-600 fill-emerald-600" />
           <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
-            🎉 현재 가장 추천하는 날짜
+            현재 가장 추천하는 날짜
           </h3>
         </div>
         <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
@@ -88,7 +88,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
         </span>
       </div>
 
-      {/* TOP 1 Focused Primary Decision Card - Calm Sage Mint Cream */}
+      {/* TOP 1 Focused Primary Decision Card - Clean Sage Mint */}
       <div
         className={`relative rounded-3xl p-6 transition-all ${
           isTop1Confirmed
@@ -98,7 +98,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
       >
         <div className="flex items-center justify-between mb-2">
           <span className="px-3 py-0.5 rounded-full text-xs font-black bg-emerald-600 text-white uppercase tracking-wider shadow-sm">
-            🏆 1위 최적 날짜
+            1위 최적 날짜
           </span>
           <span className="text-xs font-extrabold text-emerald-700 flex items-center gap-1">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
@@ -152,12 +152,12 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
             }`}
           >
             <ThumbsUp className="w-4 h-4 text-white" />
-            <span>{isTop1Confirmed ? '이 날짜로 약속 확정 완료!' : '👑 방장: 이 날짜로 모임 확정하기'}</span>
+            <span>{isTop1Confirmed ? '이 날짜로 약속 확정 완료' : '방장: 이 날짜로 모임 확정하기'}</span>
           </button>
         ) : isTop1Confirmed ? (
           <div className="w-full py-3.5 rounded-2xl text-xs font-black bg-emerald-600 text-white flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20">
             <ShieldCheck className="w-4 h-4 text-white" />
-            <span>🎉 방장에 의해 이 날짜로 모임이 확정되었습니다!</span>
+            <span>방장에 의해 이 날짜로 모임이 확정되었습니다.</span>
           </div>
         ) : null}
       </div>
@@ -219,7 +219,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
       <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-2 text-[11px] text-slate-600 leading-relaxed shadow-sm">
         <Info className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
         <div>
-          <strong className="font-extrabold text-slate-900">💡 순위 산정 시스템 안내:</strong>
+          <strong className="font-extrabold text-slate-900">순위 산정 시스템 안내:</strong>
           <span> 가능 참석 인원수가 동일할 경우, <strong>가장 빠른 날짜순</strong>으로 최적 순위(1위, 2위, 3위)가 자동 지정됩니다.</span>
         </div>
       </div>
