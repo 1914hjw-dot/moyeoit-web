@@ -19,7 +19,6 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ room, onClose }) => {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(shareUrl);
       } else {
-        // Fallback for older browsers
         const input = document.createElement('input');
         input.value = shareUrl;
         document.body.appendChild(input);
@@ -44,7 +43,6 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ room, onClose }) => {
           url: shareUrl,
         });
       } catch (e) {
-        // Fallback to copy link if user cancels or native share fails
         handleCopyLink();
       }
     } else {
@@ -58,7 +56,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ room, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <Share2 className="w-4 h-4 text-indigo-600" />
+            <Share2 className="w-4 h-4 text-slate-800" />
             <h3 className="text-base font-black text-slate-900">초대 링크 공유하기</h3>
           </div>
           <button
@@ -78,18 +76,18 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ room, onClose }) => {
 
         {/* Share Action Buttons */}
         <div className="space-y-2.5">
-          {/* Primary Action: Link Copy */}
+          {/* Primary Action: Link Copy (Slate 900) */}
           <button
             type="button"
             onClick={handleCopyLink}
             className={`w-full h-12 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
               copied
                 ? 'bg-emerald-600 text-white shadow-emerald-600/20'
-                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20'
+                : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/10'
             }`}
           >
             {copied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4 text-white" />}
-            <span>{copied ? '초대 링크가 복사되었습니다!' : '⚡ 초대 링크 복사하기'}</span>
+            <span>{copied ? '초대 링크가 복사되었습니다!' : '초대 링크 복사하기'}</span>
           </button>
 
           {/* Secondary Action: Native System Share */}

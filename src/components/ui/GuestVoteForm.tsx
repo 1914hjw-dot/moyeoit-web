@@ -88,12 +88,12 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between pb-2 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 font-black">
+            <div className="p-1.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 font-black">
               <CalendarIcon className="w-4 h-4" />
             </div>
             <div>
               <h3 className="text-sm sm:text-base font-black text-slate-900">
-                {existingVote ? '내 가능 날짜 수정' : '✨ 내 가능 날짜 선택하기'}
+                {existingVote ? '내 가능 날짜 수정' : '내 가능 날짜 선택하기'}
               </h3>
               <p className="text-[11px] text-slate-500">
                 기본 '가능' 상태입니다. 안 되는 날짜만 눌러 해제해 주세요.
@@ -157,7 +157,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
             className="w-full py-2 px-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-slate-600 hover:text-slate-900 text-xs font-bold flex items-center justify-between transition-all cursor-pointer"
           >
             <span className="flex items-center gap-1.5">
-              <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
+              <MessageSquare className="w-3.5 h-3.5 text-slate-600" />
               <span>+ 메모 및 비밀번호 (선택)</span>
             </span>
             {showOptionalFields ? (
@@ -204,14 +204,14 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
           )}
         </div>
 
-        {/* 4. Main Submit Button */}
+        {/* 4. Main Submit Button (Slate 900) */}
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full sys-btn-primary h-12 text-xs sm:text-sm font-black disabled:opacity-50 shadow-lg shadow-indigo-500/20 cursor-pointer flex items-center justify-center gap-2"
+          className="w-full sys-btn-primary h-12 text-xs sm:text-sm font-black disabled:opacity-50 shadow-md cursor-pointer flex items-center justify-center gap-2"
         >
           <Sparkles className="w-4 h-4 text-white" />
-          <span>{isSubmitting ? '저장 중...' : existingVote ? '투표 수정 완료' : '✨ 내 가능 날짜 제출하기'}</span>
+          <span>{isSubmitting ? '저장 중...' : existingVote ? '투표 수정 완료' : '내 가능 날짜 제출하기'}</span>
         </button>
       </div>
     </form>

@@ -21,7 +21,6 @@ export const CalendarSelector: React.FC<CalendarSelectorProps> = ({
   timeSlots,
   onChangeTimeSlots,
 }) => {
-  // Dynamically initialize to current year & month
   const [currentMonthDate, setCurrentMonthDate] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -88,7 +87,7 @@ export const CalendarSelector: React.FC<CalendarSelectorProps> = ({
             onClick={() => onChangeScheduleType('date_only')}
             className={`h-11 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
               scheduleType === 'date_only'
-                ? 'bg-white text-indigo-600 shadow-md shadow-indigo-500/5'
+                ? 'bg-white text-slate-900 shadow-sm'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -105,7 +104,7 @@ export const CalendarSelector: React.FC<CalendarSelectorProps> = ({
             }}
             className={`h-11 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
               scheduleType === 'date_time'
-                ? 'bg-white text-indigo-600 shadow-md shadow-indigo-500/5'
+                ? 'bg-white text-slate-900 shadow-sm'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -131,8 +130,8 @@ export const CalendarSelector: React.FC<CalendarSelectorProps> = ({
                   onClick={() => toggleTimeSlot(slot)}
                   className={`h-10 px-3.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                      : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-300'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-400'
                   }`}
                 >
                   {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
@@ -150,9 +149,9 @@ export const CalendarSelector: React.FC<CalendarSelectorProps> = ({
           type="button"
           aria-label="이번 달 주말 전체 선택"
           onClick={selectAllWeekends}
-          className="h-10 px-3.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+          className="h-10 px-3.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200 hover:bg-slate-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
         >
-          <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+          <Zap className="w-3.5 h-3.5 text-slate-700 fill-slate-700" />
           <span>이번 달 주말 전체 선택</span>
         </button>
 
@@ -199,7 +198,7 @@ export const CalendarSelector: React.FC<CalendarSelectorProps> = ({
             key={day}
             role="columnheader"
             className={`text-xs font-bold py-1 ${
-              idx === 0 ? 'text-rose-500' : idx === 6 ? 'text-indigo-600' : 'text-slate-400'
+              idx === 0 ? 'text-rose-500' : idx === 6 ? 'text-slate-700' : 'text-slate-400'
             }`}
           >
             {day}
@@ -227,10 +226,10 @@ export const CalendarSelector: React.FC<CalendarSelectorProps> = ({
               onClick={() => toggleDate(dateStr)}
               className={`h-11 sm:h-12 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center relative cursor-pointer active:scale-95 touch-manipulation ${
                 isSelected
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                  ? 'bg-slate-900 text-white shadow-md'
                   : isWeekend
-                  ? 'bg-slate-100/90 text-slate-800 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200/60'
-                  : 'bg-slate-50 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-100'
+                  ? 'bg-slate-100/90 text-slate-800 hover:bg-slate-200 hover:text-slate-900 border border-slate-200/60'
+                  : 'bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-100'
               }`}
             >
               <span>{dayNum}</span>
@@ -245,7 +244,7 @@ export const CalendarSelector: React.FC<CalendarSelectorProps> = ({
       {/* Selected dates count */}
       <div className="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100" aria-live="polite">
         <span>선택된 후보 날짜</span>
-        <span className="font-extrabold text-indigo-600">{selectedDates.length}개 일자 선택됨</span>
+        <span className="font-extrabold text-slate-900">{selectedDates.length}개 일자 선택됨</span>
       </div>
     </div>
   );

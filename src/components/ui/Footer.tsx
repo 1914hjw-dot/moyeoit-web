@@ -10,7 +10,7 @@ export const Footer: React.FC = () => {
       <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
         {/* Brand */}
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-sm">
+          <div className="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xs shadow-xs">
             <Calendar className="w-4 h-4" />
           </div>
           <div>
@@ -23,7 +23,7 @@ export const Footer: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
           <Link
             href="/privacy"
-            className="hover:text-indigo-600 transition-colors flex items-center gap-1 text-slate-600"
+            className="hover:text-slate-900 transition-colors flex items-center gap-1 text-slate-600"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
             <span>개인정보처리방침</span>
@@ -33,9 +33,9 @@ export const Footer: React.FC = () => {
 
           <Link
             href="/terms"
-            className="hover:text-indigo-600 transition-colors flex items-center gap-1 text-slate-600"
+            className="hover:text-slate-900 transition-colors flex items-center gap-1 text-slate-600"
           >
-            <FileText className="w-3.5 h-3.5 text-slate-400" />
+            <FileText className="w-3.5 h-3.5 text-slate-500" />
             <span>이용약관</span>
           </Link>
 

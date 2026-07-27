@@ -23,7 +23,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
   if (recommendations.length === 0) {
     return (
       <div className="w-full sys-card p-6 text-center space-y-3 border-dashed border-slate-200 my-4 bg-white">
-        <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-sm">
+        <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center mx-auto shadow-sm">
           <Users className="w-5 h-5" />
         </div>
         <div className="space-y-1">
@@ -36,7 +36,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
           <button
             type="button"
             onClick={onShare}
-            className="px-4 py-2.5 rounded-2xl bg-indigo-600 text-white font-black text-xs inline-flex items-center gap-1.5 shadow-md shadow-indigo-500/20 cursor-pointer hover:bg-indigo-700 transition-all"
+            className="px-4 py-2.5 rounded-2xl bg-slate-900 text-white font-black text-xs inline-flex items-center gap-1.5 shadow-md cursor-pointer hover:bg-slate-800 transition-all"
           >
             <Share2 className="w-3.5 h-3.5 fill-white" />
             <span>친구들에게 초대 링크 전달하기</span>
@@ -58,7 +58,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
         particleCount: 70,
         spread: 60,
         origin: { y: 0.6 },
-        colors: ['#10b981', '#f59e0b', '#6366f1'],
+        colors: ['#10b981', '#34d399', '#059669'],
       });
     } catch {
       // Ignore
@@ -78,7 +78,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
     <div className="w-full space-y-4 my-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Crown className="w-4 h-4 text-amber-500 fill-amber-500" />
+          <Crown className="w-4 h-4 text-emerald-600 fill-emerald-600" />
           <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
             🎉 현재 가장 추천하는 날짜
           </h3>
@@ -88,20 +88,20 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
         </span>
       </div>
 
-      {/* TOP 1 Focused Primary Decision Card */}
+      {/* TOP 1 Focused Primary Decision Card - Calm Sage Mint Cream */}
       <div
         className={`relative rounded-3xl p-6 transition-all ${
           isTop1Confirmed
-            ? 'bg-gradient-to-b from-emerald-50 via-white to-white border-2 border-emerald-500 shadow-xl shadow-emerald-500/10'
-            : 'bg-gradient-to-b from-amber-50 via-white to-white border-2 border-amber-300 shadow-xl shadow-amber-500/10'
+            ? 'bg-emerald-50/80 border-2 border-emerald-500 shadow-lg shadow-emerald-500/10'
+            : 'bg-emerald-50/50 border-2 border-emerald-200/90 shadow-md shadow-emerald-500/5'
         }`}
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="px-3 py-0.5 rounded-full text-xs font-black bg-amber-400 text-slate-950 uppercase tracking-wider shadow-sm">
+          <span className="px-3 py-0.5 rounded-full text-xs font-black bg-emerald-600 text-white uppercase tracking-wider shadow-sm">
             🏆 1위 최적 날짜
           </span>
-          <span className="text-xs font-extrabold text-emerald-600 flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5" />
+          <span className="text-xs font-extrabold text-emerald-700 flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
             {top1.match_percentage}% 참석 ({top1.possible_count}/{top1.total_voters}명)
           </span>
         </div>
@@ -111,14 +111,14 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
             {formatKoreanDate(top1.date)}
           </h4>
           {top1.time_slot && (
-            <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-lg border border-amber-200 inline-block mt-1">
+            <span className="text-xs font-bold text-slate-700 bg-white px-2.5 py-0.5 rounded-lg border border-slate-200 inline-block mt-1">
               [{top1.time_slot}]
             </span>
           )}
         </div>
 
         {/* Attendee Names Breakdown */}
-        <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5 text-xs mb-4">
+        <div className="p-3.5 rounded-2xl bg-white/90 border border-slate-200/80 space-y-1.5 text-xs mb-4 shadow-xs">
           <div className="flex items-start gap-1.5 text-emerald-700">
             <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-600" />
             <span className="font-bold text-slate-800">
@@ -182,7 +182,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
                       {formatKoreanDate(rec.date)}
                     </span>
                     {rec.time_slot && (
-                      <span className="text-[11px] text-amber-700 font-bold ml-1.5">[{rec.time_slot}]</span>
+                      <span className="text-[11px] text-slate-600 font-bold ml-1.5">[{rec.time_slot}]</span>
                     )}
                     <p className="text-[11px] text-slate-500 mt-0.5">
                       가능: {formatAttendeeNames(rec.attendee_names)}
@@ -216,10 +216,10 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
       )}
 
       {/* System Tie-Breaker Explanation Badge */}
-      <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-100 flex items-start gap-2 text-[11px] text-indigo-900/80 leading-relaxed shadow-sm">
-        <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+      <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-2 text-[11px] text-slate-600 leading-relaxed shadow-sm">
+        <Info className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
         <div>
-          <strong className="font-extrabold text-indigo-950">💡 순위 산정 시스템 안내:</strong>
+          <strong className="font-extrabold text-slate-900">💡 순위 산정 시스템 안내:</strong>
           <span> 가능 참석 인원수가 동일할 경우, <strong>가장 빠른 날짜순</strong>으로 최적 순위(1위, 2위, 3위)가 자동 지정됩니다.</span>
         </div>
       </div>

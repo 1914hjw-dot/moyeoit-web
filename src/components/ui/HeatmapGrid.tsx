@@ -17,7 +17,6 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = ({
   totalVotersCount,
 }) => {
   const [selectedCell, setSelectedCell] = useState<HeatmapCellData | null>(null);
-  // Default is hidden/collapsed until user explicitly clicks to expand
   const [isExpanded, setIsExpanded] = useState(false);
 
   const cells = Object.values(heatmapMap);
@@ -26,22 +25,22 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = ({
 
   const getHeatmapBg = (ratio: number, count: number) => {
     if (count === 0) return 'bg-slate-50 text-slate-400 border-slate-200';
-    if (ratio === 1) return 'bg-emerald-500 text-white border-emerald-600 font-extrabold shadow-sm';
-    if (ratio >= 0.66) return 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold';
-    if (ratio >= 0.33) return 'bg-amber-100 text-amber-900 border-amber-300 font-semibold';
+    if (ratio === 1) return 'bg-emerald-600 text-white border-emerald-700 font-extrabold shadow-xs';
+    if (ratio >= 0.66) return 'bg-emerald-100 text-emerald-950 border-emerald-300 font-bold';
+    if (ratio >= 0.33) return 'bg-amber-100 text-amber-950 border-amber-300 font-semibold';
     return 'bg-slate-100 text-slate-700 border-slate-200';
   };
 
   return (
     <div className="w-full sys-card p-4 sm:p-5 space-y-4 my-4 bg-white border-slate-200/80 shadow-sm rounded-3xl">
-      {/* Collapsible Section Header (Hidden by default) */}
+      {/* Collapsible Section Header */}
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between cursor-pointer select-none text-left"
       >
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+          <div className="p-1.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200">
             <LayoutGrid className="w-4 h-4" />
           </div>
           <div>
@@ -54,7 +53,7 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = ({
           </div>
         </div>
 
-        <span className="text-xs font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-2xl flex items-center gap-1 shrink-0 shadow-sm hover:bg-indigo-100 transition-all">
+        <span className="text-xs font-extrabold text-slate-800 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-2xl flex items-center gap-1 shrink-0 shadow-xs hover:bg-slate-200 transition-all">
           <span>{isExpanded ? '접기' : '펼쳐보기'}</span>
           {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </span>
@@ -102,7 +101,7 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = ({
           {/* Legend */}
           <div className="flex items-center justify-end gap-3 text-[11px] text-slate-500 pt-1">
             <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> 전원 가능
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" /> 전원 가능
             </span>
             <span className="flex items-center gap-1">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 inline-block" /> 66% 이상
@@ -124,7 +123,7 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = ({
                   {formatKoreanDate(selectedCell.date)}
                 </h4>
                 {selectedCell.time_slot && (
-                  <p className="text-xs text-amber-700 font-bold">
+                  <p className="text-xs text-slate-700 font-bold">
                     [{selectedCell.time_slot}]
                   </p>
                 )}
@@ -155,10 +154,10 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = ({
                     <span
                       className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
                         isPossible
-                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
                           : isMaybe
-                          ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                          : 'bg-rose-100 text-rose-800 border border-rose-200'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                          : 'bg-rose-100 text-rose-900 border border-rose-200'
                       }`}
                     >
                       {isPossible && <UserCheck className="w-3 h-3" />}

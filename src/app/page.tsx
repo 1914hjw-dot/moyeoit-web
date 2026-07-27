@@ -6,14 +6,13 @@ import { CalendarSelector } from '@/components/ui/CalendarSelector';
 import { AdBanner } from '@/components/ui/Monetization/AdBanner';
 import { Footer } from '@/components/ui/Footer';
 import { ScheduleType } from '@/types/schema';
-import { Sparkles, Calendar, ArrowRight, ShieldCheck, Share2, Award } from 'lucide-react';
+import { Sparkles, Calendar, ArrowRight } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [scheduleType, setScheduleType] = useState<ScheduleType>('date_only');
-  // Initial selected candidate dates set to empty array for real room creation
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [timeSlots, setTimeSlots] = useState<string[]>([
     '오전 (10:00~14:00)',
@@ -70,13 +69,13 @@ export default function HomePage() {
         {/* Brand Header */}
         <header className="flex items-center justify-between py-2 border-b border-slate-200/80">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-md shadow-indigo-500/20">
+            <div className="w-9 h-9 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black shadow-sm">
               <Calendar className="w-5 h-5" />
             </div>
             <div>
               <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-900 flex items-center gap-2">
                 <span>모여잇</span>
-                <span className="text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                <span className="text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                   Moyeoit
                 </span>
               </h1>
@@ -97,8 +96,8 @@ export default function HomePage() {
 
         {/* Compact Hero Section */}
         <section className="text-center space-y-2.5 pt-2 pb-1">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-extrabold text-indigo-700 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-extrabold text-slate-700 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span>회원가입 0초 • 단톡방 링크 1초 공유</span>
           </div>
 
@@ -115,7 +114,7 @@ export default function HomePage() {
           <form onSubmit={handleCreateRoom} className="sys-card p-5 sm:p-8 space-y-6 shadow-xl shadow-slate-200/50 border-slate-200/80 bg-white">
             <div className="space-y-1">
               <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-indigo-600" />
+                <Calendar className="w-5 h-5 text-slate-800" />
                 <span>새로운 약속 방 만들기</span>
               </h3>
               <p className="text-xs text-slate-500">
@@ -172,10 +171,10 @@ export default function HomePage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full sys-btn-primary h-13 text-sm font-black flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-lg shadow-indigo-500/20"
+              className="w-full sys-btn-primary h-13 text-sm font-black flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-md"
             >
               <Sparkles className="w-4 h-4 text-white" />
-              <span>{isSubmitting ? '약속 방 생성 중...' : '✨ 약속 방 만들기 (초대 링크 생성)'}</span>
+              <span>{isSubmitting ? '약속 방 생성 중...' : '약속 방 만들기 (초대 링크 생성)'}</span>
               <ArrowRight className="w-4 h-4 text-white" />
             </button>
           </form>
@@ -184,13 +183,13 @@ export default function HomePage() {
         {/* Core 3-Step Workflow Flow */}
         <section className="space-y-3 pt-2">
           <div className="text-center space-y-0.5">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Workflow</h3>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Workflow</h3>
             <p className="text-sm font-black text-slate-900">약속이 정해지는 가장 자연스러운 3단계</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="sys-card p-5 space-y-2 bg-white border-slate-200/80 shadow-sm">
-              <span className="w-7 h-7 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center text-xs font-black">01</span>
+              <span className="w-7 h-7 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center text-xs font-black">01</span>
               <h4 className="text-xs font-black text-slate-900">10초 만에 방 만들기</h4>
               <p className="text-[11px] text-slate-500 leading-relaxed">
                 로그인 없이 모임 이름과 후보 날짜를 지정합니다.
@@ -198,15 +197,15 @@ export default function HomePage() {
             </div>
 
             <div className="sys-card p-5 space-y-2 bg-white border-slate-200/80 shadow-sm">
-              <span className="w-7 h-7 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-xs font-black">02</span>
+              <span className="w-7 h-7 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center text-xs font-black">02</span>
               <h4 className="text-xs font-black text-slate-900">단톡방에 1초 공유</h4>
               <p className="text-[11px] text-slate-500 leading-relaxed">
-                카카오톡에 초대 링크를 공유하면 예쁜 카드가 전달됩니다.
+                카카오톡에 초대 링크를 공유하여 가능 날짜를 모읍니다.
               </p>
             </div>
 
             <div className="sys-card p-5 space-y-2 bg-white border-slate-200/80 shadow-sm">
-              <span className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs font-black">03</span>
+              <span className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-100 flex items-center justify-center text-xs font-black">03</span>
               <h4 className="text-xs font-black text-slate-900">황금 날짜 한눈에 확인</h4>
               <p className="text-[11px] text-slate-500 leading-relaxed">
                 전원 참석 가능한 TOP 1 날짜와 히트맵으로 확정합니다.
@@ -224,9 +223,9 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => router.push('/room/demo-room-1')}
-              className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-indigo-300 hover:bg-indigo-50/50 text-left transition-all group cursor-pointer"
+              className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-400 hover:bg-slate-100 text-left transition-all group cursor-pointer"
             >
-              <p className="text-xs font-black text-slate-900 group-hover:text-indigo-600">
+              <p className="text-xs font-black text-slate-900 group-hover:text-slate-900">
                 🎉 7월 모여잇 정기 스터디 모임
               </p>
               <p className="text-[11px] text-slate-500 mt-1">
@@ -237,9 +236,9 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => router.push('/room/demo-room-2')}
-              className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-indigo-300 hover:bg-indigo-50/50 text-left transition-all group cursor-pointer"
+              className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-400 hover:bg-slate-100 text-left transition-all group cursor-pointer"
             >
-              <p className="text-xs font-black text-slate-900 group-hover:text-indigo-600">
+              <p className="text-xs font-black text-slate-900 group-hover:text-slate-900">
                 ☕ 주말 파티룸 모임 (시간대 지정)
               </p>
               <p className="text-[11px] text-slate-500 mt-1">
