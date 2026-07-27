@@ -87,17 +87,20 @@ export function extractGoldenDates(
     return [];
   }
 
-  // Sort cells by score
+  // Sort cells by score:
+  // 1. Possible count descending
+  // 2. Maybe/Undecided count descending
+  // 3. Date ascending (Earliest date gets priority rank on tie)
   const sorted = [...cells].sort((a, b) => {
-    // 1. Possible count descending
     if (b.possible_count !== a.possible_count) {
       return b.possible_count - a.possible_count;
     }
-    // 2. Maybe count descending
     if (b.maybe_count !== a.maybe_count) {
       return b.maybe_count - a.maybe_count;
     }
-    // 3. Date ascending
+    if (a.date !== b.date) {
+      return a.date.localeCompare(b.date);
+    }
     return a.key.localeCompare(b.key);
   });
 
@@ -105,7 +108,7 @@ export function extractGoldenDates(
   return sorted.slice(0, 3).map((cell, index) => {
     const attendeeNames = cell.attendees
       .filter((att) => att.status === 'possible' || att.status === 'maybe')
-      .map((att) => (att.status === 'maybe' ? `${att.nickname}(세모)` : att.nickname));
+      .map((att) => (att.status === 'maybe' ? `${att.nickname}(미정)` : att.nickname));
 
     const absenteeList = cell.attendees
       .filter((att) => att.status === 'impossible')

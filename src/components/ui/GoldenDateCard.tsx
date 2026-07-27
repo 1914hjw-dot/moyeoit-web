@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Crown, Sparkles, CheckCircle2, AlertCircle, ThumbsUp, ShieldCheck, Users, Share2 } from 'lucide-react';
+import { Crown, Sparkles, CheckCircle2, AlertCircle, ThumbsUp, ShieldCheck, Users, Share2, Info } from 'lucide-react';
 import { GoldenDateRecommendation } from '@/types/schema';
 import { formatKoreanDate } from '@/lib/analytics';
 
@@ -214,6 +214,15 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
           })}
         </div>
       )}
+
+      {/* System Tie-Breaker Explanation Badge */}
+      <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-100 flex items-start gap-2 text-[11px] text-indigo-900/80 leading-relaxed shadow-sm">
+        <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+        <div>
+          <strong className="font-extrabold text-indigo-950">💡 순위 산정 시스템 안내:</strong>
+          <span> 가능 참석 인원수가 동일할 경우, <strong>가장 빠른 날짜순</strong>으로 최적 순위(1위, 2위, 3위)가 자동 지정됩니다.</span>
+        </div>
+      </div>
     </div>
   );
 };

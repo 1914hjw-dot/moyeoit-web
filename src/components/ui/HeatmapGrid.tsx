@@ -17,6 +17,7 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = ({
   totalVotersCount,
 }) => {
   const [selectedCell, setSelectedCell] = useState<HeatmapCellData | null>(null);
+  // Default is hidden/collapsed until user explicitly clicks to expand
   const [isExpanded, setIsExpanded] = useState(false);
 
   const cells = Object.values(heatmapMap);
@@ -32,27 +33,32 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = ({
   };
 
   return (
-    <div className="w-full sys-card p-5 sm:p-6 space-y-4 my-6 bg-white border-slate-200/80 shadow-sm">
-      {/* Collapsible Section Header */}
-      <div
+    <div className="w-full sys-card p-4 sm:p-5 space-y-4 my-4 bg-white border-slate-200/80 shadow-sm rounded-3xl">
+      {/* Collapsible Section Header (Hidden by default) */}
+      <button
+        type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between cursor-pointer select-none"
+        className="w-full flex items-center justify-between cursor-pointer select-none text-left"
       >
         <div className="flex items-center gap-2">
-          <LayoutGrid className="w-4 h-4 text-indigo-600" />
-          <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
-            전체 참여자 응답 현황 (히트맵)
-          </h3>
+          <div className="p-1.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+            <LayoutGrid className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight">
+              📊 전체 참여자 응답 현황 (히트맵)
+            </h3>
+            <p className="text-[11px] text-slate-400">
+              {isExpanded ? '클릭하여 히트맵 접기' : '모든 참여자의 가능 날짜 한눈에 확인하기'}
+            </p>
+          </div>
         </div>
 
-        <button
-          type="button"
-          className="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200"
-        >
-          <span>{isExpanded ? '접기' : '전체 상세 보기'}</span>
+        <span className="text-xs font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-2xl flex items-center gap-1 shrink-0 shadow-sm hover:bg-indigo-100 transition-all">
+          <span>{isExpanded ? '접기' : '펼쳐보기'}</span>
           {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        </button>
-      </div>
+        </span>
+      </button>
 
       {/* Accordion / Collapsible Container */}
       {isExpanded && (
