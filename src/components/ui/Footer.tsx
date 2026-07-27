@@ -55,7 +55,7 @@ export const Footer: React.FC = () => {
 
       <div className="max-w-4xl mx-auto pt-3 border-t border-slate-100 text-[11px] text-slate-400 text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-2">
         <p>© 2026 모여잇 (Moyeoit). All rights reserved.</p>
-        <p>무회원으로 빠르게 이용할 수 있는 심플한 날짜 조율 서비스입니다.</p>
+        <p>비회원으로 빠르게 이용할 수 있는 심플한 날짜 조율 서비스입니다.</p>
       </div>
     </footer>
   );
