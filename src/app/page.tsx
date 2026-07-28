@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CalendarSelector } from '@/components/ui/CalendarSelector';
 import { AdBanner } from '@/components/ui/Monetization/AdBanner';
+import { HomeBelowTheFold } from '@/components/ui/HomeBelowTheFold';
 import { Footer } from '@/components/ui/Footer';
 import { ScheduleType } from '@/types/schema';
 import { Sparkles, Calendar, ArrowRight } from 'lucide-react';
@@ -250,6 +251,9 @@ export default function HomePage() {
 
         {/* Ad Banner */}
         <AdBanner slotType="bottom_vote" />
+
+        {/* Rich Below-the-Fold Content & FAQ */}
+        <HomeBelowTheFold />
       </div>
 
       <Footer />
