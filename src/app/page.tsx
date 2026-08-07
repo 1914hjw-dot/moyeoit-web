@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CalendarSelector } from '@/components/ui/CalendarSelector';
-import { AdBanner } from '@/components/ui/Monetization/AdBanner';
+import { AdFitBanner } from '@/components/ads';
 import { HomeBelowTheFold } from '@/components/ui/HomeBelowTheFold';
 import { Footer } from '@/components/ui/Footer';
 import { ScheduleType } from '@/types/schema';
@@ -181,6 +181,9 @@ export default function HomePage() {
           </form>
         </section>
 
+        {/* Kakao AdFit Banner (Placed directly below Room Creation Section) */}
+        <AdFitBanner />
+
         {/* Core 3-Step Workflow Flow */}
         <section className="space-y-3 pt-2">
           <div className="text-center space-y-0.5">
@@ -248,9 +251,6 @@ export default function HomePage() {
             </button>
           </div>
         </section>
-
-        {/* Ad Banner */}
-        <AdBanner slotType="bottom_vote" />
 
         {/* Rich Below-the-Fold Content & FAQ */}
         <HomeBelowTheFold />
