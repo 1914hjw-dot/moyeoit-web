@@ -1,0 +1,16 @@
+# ============================================================================
+# Moyeoit (모여잇) Official ads.txt File
+# Reference: Google AdSense Authorized Digital Sellers & Kakao AdFit Specification
+# ============================================================================
+#
+# IMPORTANT OPERATIONAL INSTRUCTIONS:
+# Replace 'pub-XXXXXXXXXXXXXXXX' with your actual Google AdSense Publisher ID
+# Example: google.com, pub-3199026813976563, DIRECT, f08c47fec0942fa0
+#
+# ============================================================================
+
+# Google AdSense
+google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+
+# Kakao AdFit
+kakaocorp.com, KakaoAdFit, DIRECT

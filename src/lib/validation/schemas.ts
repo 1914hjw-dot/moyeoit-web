@@ -1,9 +1,12 @@
 import { z } from 'zod';
+import { validateAndSanitizeUGC } from './ugcFilter';
 
-// Clean input sanitizer preserving raw UTF-8 text while stripping null bytes & control chars
-function sanitizeRawInput(val: string): string {
-  if (!val) return '';
-  return val.trim().replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+function applyUGCFilter(val: string, fieldName: string): string {
+  const result = validateAndSanitizeUGC(val, fieldName);
+  if (!result.isValid) {
+    throw new Error(result.errorReason || `${fieldName}에 허용되지 않는 텍스트가 포함되어 있습니다.`);
+  }
+  return result.sanitizedText;
 }
 
 export const ScheduleTypeSchema = z.enum(['date_only', 'date_time']);
@@ -13,7 +16,7 @@ export const AvailabilityStatusSchema = z.enum(['possible', 'impossible', 'maybe
 export const CreateRoomInputSchema = z.object({
   title: z
     .string()
-    .transform(sanitizeRawInput)
+    .transform((val) => applyUGCFilter(val, '모임 제목'))
     .pipe(
       z
         .string()
@@ -22,7 +25,7 @@ export const CreateRoomInputSchema = z.object({
     ),
   description: z
     .string()
-    .transform(sanitizeRawInput)
+    .transform((val) => applyUGCFilter(val, '안내 문구'))
     .pipe(z.string().max(200, { message: '안내 문구는 최대 200자까지 입력 가능합니다.' }))
     .optional()
     .default(''),
@@ -32,7 +35,7 @@ export const CreateRoomInputSchema = z.object({
     .min(1, { message: '최소 1개 이상의 후보 날짜를 선택해 주세요.' })
     .max(31, { message: '후보 날짜는 최대 31개까지 선택 가능합니다.' }),
   time_slots: z
-    .array(z.string().transform(sanitizeRawInput))
+    .array(z.string().transform((val) => applyUGCFilter(val, '시간대')))
     .max(10, { message: '시간대는 최대 10개까지 설정 가능합니다.' })
     .optional()
     .default([]),
@@ -42,7 +45,7 @@ export const SubmitVoteInputSchema = z.object({
   room_id: z.string().trim().min(1, { message: '올바른 방 번호가 필요합니다.' }),
   nickname: z
     .string()
-    .transform(sanitizeRawInput)
+    .transform((val) => applyUGCFilter(val, '닉네임'))
     .pipe(
       z
         .string()
@@ -54,7 +57,7 @@ export const SubmitVoteInputSchema = z.object({
   availability: z.record(z.string(), AvailabilityStatusSchema),
   note: z
     .string()
-    .transform(sanitizeRawInput)
+    .transform((val) => applyUGCFilter(val, '한줄 메모'))
     .pipe(z.string().max(200, { message: '한줄 메모는 최대 200자까지 입력 가능합니다.' }))
     .optional()
     .default(''),
@@ -64,7 +67,7 @@ export const DeleteVoteInputSchema = z.object({
   room_id: z.string().trim().min(1, { message: '올바른 방 번호가 필요합니다.' }),
   nickname: z
     .string()
-    .transform(sanitizeRawInput)
+    .transform((val) => applyUGCFilter(val, '닉네임'))
     .pipe(
       z
         .string()
