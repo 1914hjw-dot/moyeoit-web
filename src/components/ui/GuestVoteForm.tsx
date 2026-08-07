@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { UserCheck, Sparkles, ShieldCheck, Calendar as CalendarIcon, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import { UserCheck, Sparkles, ShieldCheck, Calendar as CalendarIcon, ChevronDown, ChevronUp, MessageSquare, Eye, EyeOff } from 'lucide-react';
 import { Room, Vote, AvailabilityStatus, SubmitVoteInput } from '@/types/schema';
 import { CalendarVoteSelector } from '@/components/ui/CalendarVoteSelector';
 
@@ -20,6 +20,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
 }) => {
   const [nickname, setNickname] = useState(existingVote?.nickname || '');
   const [password, setPassword] = useState('');
+  const [showPasswordText, setShowPasswordText] = useState(false);
   const [note, setNote] = useState(existingVote?.note || '');
   const [showOptionalFields, setShowOptionalFields] = useState(Boolean(existingVote?.note));
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -127,7 +128,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
             ref={nicknameInputRef}
             type="text"
             required
-            autoComplete="off"
+            autoComplete="name"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             placeholder="이름 또는 닉네임을 입력하세요"
@@ -149,7 +150,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
           />
         </div>
 
-        {/* 3. Optional Accordion (Note & PIN) */}
+        {/* 3. Optional Accordion (Note & PIN Password) */}
         <div>
           <button
             type="button"
@@ -189,16 +190,27 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
                     <span>암호화 보관</span>
                   </span>
                 </div>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={4}
-                  autoComplete="off"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="숫자 4자리"
-                  className="w-full sys-input h-10 text-xs bg-white"
-                />
+
+                <div className="relative">
+                  <input
+                    type={showPasswordText ? 'text' : 'password'}
+                    inputMode="numeric"
+                    maxLength={4}
+                    autoComplete={existingVote ? 'current-password' : 'new-password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="숫자 4자리"
+                    className="w-full sys-input h-10 text-xs bg-white pr-10 font-mono tracking-widest"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordText((prev) => !prev)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-lg transition-colors cursor-pointer"
+                    aria-label={showPasswordText ? '비밀번호 숨기기' : '비밀번호 보기'}
+                  >
+                    {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
             </div>
           )}
