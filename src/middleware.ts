@@ -27,9 +27,11 @@ export function middleware(req: NextRequest) {
     'Permissions-Policy',
     'camera=(), microphone=(), geolocation=(), browsing-topics=()'
   );
+
+  // Content-Security-Policy Hardened for Kakao AdFit, Supabase, and GA4
   response.headers.set(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://t1.kakaocdn.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://www.google-analytics.com;"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://t1.kakaocdn.net https://*.kakaocdn.net https://t1.daumcdn.net https://*.daumcdn.net https://display.adfit.kakao.com https://*.adfit.kakao.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: https://t1.kakaocdn.net https://*.kakaocdn.net https://*.daumcdn.net https://display.adfit.kakao.com; font-src 'self' data:; frame-src 'self' https://display.adfit.kakao.com https://*.adfit.kakao.com https://*.daumcdn.net; connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://display.adfit.kakao.com https://*.adfit.kakao.com https://*.kakaocdn.net https://*.daumcdn.net https://*.daum.net;"
   );
 
   // 2. API Endpoint Rate Limiting (Protection against Denial of Service & Spamming)
