@@ -36,56 +36,50 @@ export default function ContactPage() {
             모여잇 고객지원 및 문의하기
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-semibold leading-relaxed">
-            서비스 이용 관련 불편사항, 개인정보 권리행사 요청, 제휴 및 버그 제보는 아래 메일로 연락해 주세요.
+            서비스 이용 관련 불편사항, 개인정보 관련 문의 및 삭제 요청, 제휴 및 버그 제보는 공식 문의 메일로 연락해 주세요.
           </p>
         </div>
 
         {/* Contact Channels Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Channel 1: General Support */}
+          {/* Channel 1: Unified Support & Privacy */}
           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3 flex flex-col justify-between">
             <div className="space-y-2">
               <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                 <MessageSquare className="w-4 h-4" />
               </div>
-              <h2 className="text-sm font-extrabold text-slate-900">1. 서비스 이용 & 제휴 문의</h2>
+              <h2 className="text-sm font-extrabold text-slate-900">1. 문의 및 고객지원</h2>
               <p className="text-xs text-slate-500 leading-relaxed">
-                기능 제안, 서비스 사용법 문의, 광고 및 제휴 관련 문의입니다.
+                서비스 이용 안내, 개인정보 열람·삭제 요청 및 일반 고객지원 통합 창구입니다.
               </p>
             </div>
             <div className="pt-2 border-t border-slate-200/60">
               <a
                 href="mailto:j6411863@gmail.com"
-                className="text-xs font-bold text-indigo-600 hover:underline break-all"
+                className="text-xs font-bold text-indigo-600 hover:underline break-all block"
               >
                 j6411863@gmail.com
               </a>
             </div>
           </div>
 
-          {/* Channel 2: Privacy Officer */}
+          {/* Channel 2: Partnership & Suggestions */}
           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3 flex flex-col justify-between">
             <div className="space-y-2">
               <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                 <ShieldCheck className="w-4 h-4" />
               </div>
-              <h2 className="text-sm font-extrabold text-slate-900">2. 개인정보 관련 문의</h2>
+              <h2 className="text-sm font-extrabold text-slate-900">2. 제휴 & 기능 제안</h2>
               <p className="text-xs text-slate-500 leading-relaxed">
-                개인정보 열람, 삭제 요청 및 개인정보보호 관련 문의 전용 창구입니다.
+                광고, 마케팅 제휴 및 모여잇 서비스 신규 기능 아이디어 제안 창구입니다.
               </p>
             </div>
             <div className="pt-2 border-t border-slate-200/60">
               <a
-                href="mailto:privacy@moyeoit.com"
+                href="mailto:j6411863@gmail.com"
                 className="text-xs font-bold text-emerald-700 hover:underline break-all block"
               >
-                privacy@moyeoit.com
-              </a>
-              <a
-                href="mailto:j6411863@gmail.com"
-                className="text-[11px] font-semibold text-slate-500 hover:underline break-all block mt-0.5"
-              >
-                (부문의: j6411863@gmail.com)
+                j6411863@gmail.com
               </a>
             </div>
           </div>
@@ -96,15 +90,15 @@ export default function ContactPage() {
               <div className="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                 <Bug className="w-4 h-4" />
               </div>
-              <h2 className="text-sm font-extrabold text-slate-900">3. 버그 제보 & 오류 접수</h2>
+              <h2 className="text-sm font-extrabold text-slate-900">3. 버그 제보 & 장애 접수</h2>
               <p className="text-xs text-slate-500 leading-relaxed">
-                화면 깨짐, 링크 오류, 투표 실패 등 기술적 장애 및 오류 접수입니다.
+                화면 오류, 링크 연결 문제, 투표 장애 등 기술적 불편사항 접수 창구입니다.
               </p>
             </div>
             <div className="pt-2 border-t border-slate-200/60">
               <a
                 href="mailto:j6411863@gmail.com"
-                className="text-xs font-bold text-rose-600 hover:underline break-all"
+                className="text-xs font-bold text-rose-600 hover:underline break-all block"
               >
                 j6411863@gmail.com
               </a>

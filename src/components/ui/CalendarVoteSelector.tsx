@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { AvailabilityStatus, HeatmapCellData } from '@/types/schema';
-import { ChevronLeft, ChevronRight, CheckCheck, X, Calendar as CalendarIcon, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCheck, X, Calendar as CalendarIcon, Sparkles, Clock, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { formatKoreanDate } from '@/lib/analytics';
 
 interface CalendarVoteSelectorProps {
   candidateDates: string[]; // ['2026-08-01', '2026-08-02', ...]
@@ -26,6 +27,9 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
   readOnly = false,
 }) => {
   const [feedbackMsg, setFeedbackMsg] = useState('');
+  const [activeDateTimeModalDate, setActiveDateTimeModalDate] = useState<string | null>(null);
+
+  const isDateTimeMode = scheduleType === 'date_time' && timeSlots.length > 0;
 
   if (!candidateDates || candidateDates.length === 0) {
     return (
@@ -52,7 +56,6 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
   const [currentMonthIndex, setCurrentMonthIndex] = useState(0);
   const activeMonth = candidateMonths[currentMonthIndex] || candidateMonths[0];
 
-  // Build 42-cell grid for active month
   const year = activeMonth.year;
   const monthIndex = activeMonth.month - 1; // 0-indexed for JS Date
   const firstDayOfWeek = new Date(year, monthIndex, 1).getDay();
@@ -60,7 +63,6 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
 
   const calendarDays: { dateStr: string; dayNum: number; isCurrentMonth: boolean; isCandidate: boolean }[] = [];
 
-  // Previous month trailing days
   const prevMonthDays = new Date(year, monthIndex, 0).getDate();
   for (let i = firstDayOfWeek - 1; i >= 0; i--) {
     const dayNum = prevMonthDays - i;
@@ -74,7 +76,6 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
     });
   }
 
-  // Current month days
   for (let d = 1; d <= daysInMonth; d++) {
     const mStr = (monthIndex + 1).toString().padStart(2, '0');
     const dStr = d.toString().padStart(2, '0');
@@ -87,7 +88,6 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
     });
   }
 
-  // Next month leading days to complete week rows
   const remainingCells = 7 - (calendarDays.length % 7);
   if (remainingCells < 7) {
     for (let d = 1; d <= remainingCells; d++) {
@@ -107,7 +107,7 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
     if (readOnly) return;
     const updated = { ...availability };
     for (const d of candidateDates) {
-      if (scheduleType === 'date_time' && timeSlots.length > 0) {
+      if (isDateTimeMode) {
         for (const slot of timeSlots) {
           updated[`${d}_${slot}`] = status;
         }
@@ -116,11 +116,11 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
       }
     }
     onChangeAvailability(updated);
-    setFeedbackMsg(status === 'possible' ? '모든 날짜가 [가능]으로 설정되었습니다!' : '모든 날짜가 [불가]로 설정되었습니다!');
+    setFeedbackMsg(status === 'possible' ? '모든 시간대가 [가능]으로 설정되었습니다!' : '모든 시간대가 [불가]로 설정되었습니다!');
     setTimeout(() => setFeedbackMsg(''), 2500);
   };
 
-  // Toggle single date status: possible -> impossible -> maybe -> possible
+  // Toggle status for single key (date or date_slot)
   const handleToggleStatus = (key: string) => {
     if (readOnly) return;
     const current = availability[key] || 'possible';
@@ -135,6 +135,18 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
     });
   };
 
+  // Check overall date status for date_time mode summary badge
+  const getDateStatusSummary = (dateStr: string) => {
+    if (!isDateTimeMode) return availability[dateStr] || 'possible';
+
+    const statuses = timeSlots.map((slot) => availability[`${dateStr}_${slot}`] || 'possible');
+    const allPossible = statuses.every((s) => s === 'possible');
+    const allImpossible = statuses.every((s) => s === 'impossible');
+    if (allPossible) return 'possible';
+    if (allImpossible) return 'impossible';
+    return 'maybe';
+  };
+
   return (
     <div className="w-full sys-card p-4 sm:p-5 space-y-4 border-slate-200/80 shadow-md bg-white rounded-3xl">
       {/* Calendar Header & Month Navigation */}
@@ -147,7 +159,7 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
             {activeMonth.year}년 {activeMonth.month}월
           </h4>
           <span className="text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full">
-            후보 {candidateDates.length}일
+            {isDateTimeMode ? '날짜 + 시간대 조율' : `후보 ${candidateDates.length}일`}
           </span>
         </div>
 
@@ -182,7 +194,7 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
           <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">
             <span className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5 text-slate-700" />
-              <span>안 되는 날짜만 눌러서 해제하세요</span>
+              <span>{isDateTimeMode ? '날짜 클릭 후 가능 시간대를 선택하세요' : '안 되는 날짜만 눌러서 해제하세요'}</span>
             </span>
             <div className="flex items-center gap-1.5 shrink-0">
               <button
@@ -248,8 +260,7 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
 
           // Candidate Date Cell
           const key = cell.dateStr;
-          const status = availability[key] || 'possible';
-          const heatmap = heatmapData[key];
+          const status = getDateStatusSummary(key);
 
           const isPossible = status === 'possible';
           const isMaybe = status === 'maybe';
@@ -260,7 +271,13 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
               type="button"
               disabled={readOnly}
               aria-pressed={isPossible}
-              onClick={() => handleToggleStatus(key)}
+              onClick={() => {
+                if (isDateTimeMode) {
+                  setActiveDateTimeModalDate(key);
+                } else {
+                  handleToggleStatus(key);
+                }
+              }}
               className={`h-13 sm:h-15 rounded-2xl p-1.5 sm:p-2 flex flex-col justify-between transition-all text-left cursor-pointer border shadow-xs active:scale-95 ${
                 isPossible
                   ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 hover:bg-emerald-100 ring-1 ring-emerald-400/30'
@@ -271,29 +288,109 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
             >
               <div className="flex items-center justify-between w-full">
                 <span className="text-xs sm:text-sm font-black">{cell.dayNum}</span>
+                {isDateTimeMode && <Clock className="w-3 h-3 text-slate-500 opacity-70" />}
               </div>
 
-              {/* Attendance Count Preview */}
-              {heatmap && heatmap.total_votes > 0 ? (
-                <div className="w-full">
-                  <div className="text-[10px] font-extrabold text-slate-700 flex items-center justify-between">
-                    <span className="text-emerald-700">{heatmap.possible_count}명</span>
-                    <span className="text-[9px] text-slate-400">{Math.round(heatmap.ratio * 100)}%</span>
-                  </div>
-                </div>
-              ) : (
-                <span className="text-[9px] text-slate-400 font-semibold block truncate">
-                  후보일
+              <div className="w-full">
+                <span className="text-[9px] font-extrabold block truncate">
+                  {isDateTimeMode
+                    ? isPossible
+                      ? '전체가능'
+                      : isMaybe
+                      ? '부분가능'
+                      : '불가'
+                    : isPossible
+                    ? '가능'
+                    : isMaybe
+                    ? '미정'
+                    : '불가'}
                 </span>
-              )}
+              </div>
             </button>
           );
         })}
       </div>
 
+      {/* DateTime Slot Selector Modal / Drawer */}
+      {activeDateTimeModalDate && isDateTimeMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-sm bg-white border border-slate-200 rounded-3xl p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-xl bg-slate-100 text-slate-700">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900">
+                    {formatKoreanDate(activeDateTimeModalDate)}
+                  </h4>
+                  <p className="text-[11px] text-slate-500">참석 가능한 시간대를 눌러서 선택하세요</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveDateTimeModalDate(null)}
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Time Slots List per Date */}
+            <div className="space-y-2.5">
+              {timeSlots.map((slot) => {
+                const slotKey = `${activeDateTimeModalDate}_${slot}`;
+                const currentStatus = availability[slotKey] || 'possible';
+                const isPoss = currentStatus === 'possible';
+                const isMay = currentStatus === 'maybe';
+
+                return (
+                  <div
+                    key={slot}
+                    className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
+                      isPoss
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                        : isMay
+                        ? 'bg-amber-50 border-amber-200 text-amber-950'
+                        : 'bg-rose-50 border-rose-200 text-rose-950'
+                    }`}
+                  >
+                    <span className="text-xs font-bold">{slot}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleStatus(slotKey)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black cursor-pointer transition-all flex items-center gap-1 ${
+                        isPoss
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : isMay
+                          ? 'bg-amber-500 text-white shadow-xs'
+                          : 'bg-rose-600 text-white shadow-xs'
+                      }`}
+                    >
+                      {isPoss && <Check className="w-3.5 h-3.5" />}
+                      <span>{isPoss ? '가능' : isMay ? '미정' : '불가'}</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveDateTimeModalDate(null)}
+              className="w-full sys-btn-primary h-11 text-xs font-black mt-2"
+            >
+              선택 완료
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Legend Footer */}
       <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
-        <span className="text-slate-400">날짜 터치 시 [가능➔불가➔미정] 순서 변경</span>
+        <span className="text-slate-400">
+          {isDateTimeMode ? '날짜 터치 시 시간대별 가능 여부 설정' : '날짜 터치 시 [가능➔불가➔미정] 순서 변경'}
+        </span>
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1 text-emerald-700 font-bold">
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> 가능
