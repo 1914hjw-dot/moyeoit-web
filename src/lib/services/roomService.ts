@@ -3,36 +3,67 @@ import { CreateRoomInputSchema } from '@/lib/validation/schemas';
 import { supabaseServer, isSupabaseConfigured } from '@/lib/supabase/server';
 import { createRoomMock, getRoomByIdMock } from '@/lib/mockStore';
 
-// Generate unguessable 128-bit UUID v4 / Cryptographic NanoID for Room IDs
-function generateSecureRoomId(): string {
+// ISO 8601 UUID v4 Regular Expression for Instant In-Memory Format Checking
+const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function generateSecureUUID(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  // Cryptographically secure fallback
   const bytes = new Uint8Array(16);
   if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
     crypto.getRandomValues(bytes);
   } else {
     for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
   }
-  bytes[6] = (bytes[6] & 0x0f) | 0x40; // UUID v4 version
-  bytes[8] = (bytes[8] & 0x3f) | 0x80; // UUID v4 variant
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
   const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+// Generate 32-byte Random Secret Hex Token for Host Administration
+function generateHostSecret(): string {
+  const bytes = new Uint8Array(32);
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < 32; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Audit Trail Logging Helper
+export async function logAuditTrail(
+  eventType: 'ROOM_CREATED' | 'ROOM_DELETED' | 'VOTE_CREATED' | 'VOTE_UPDATED' | 'VOTE_DELETED',
+  targetId: string,
+  payload?: any
+): Promise<void> {
+  if (!isSupabaseConfigured || !supabaseServer) return;
+  try {
+    await supabaseServer.from('audit_logs').insert({
+      event_type: eventType,
+      target_id: targetId,
+      payload: payload ? JSON.stringify(payload) : null,
+    });
+  } catch (err) {
+    console.error('Audit trail logging failed:', err);
+  }
+}
+
 export async function createRoom(input: CreateRoomInput): Promise<Room> {
-  // 1. Zod Validation & Sanitization
   const validated = CreateRoomInputSchema.parse(input);
 
-  // 2. Supabase DB Storage with Cryptographic UUID
   if (isSupabaseConfigured && supabaseServer) {
-    const secureId = generateSecureRoomId();
+    const secureId = generateSecureUUID();
+    const secretHash = generateHostSecret();
+
     const { data, error } = await supabaseServer
       .from('rooms')
       .insert({
         id: secureId,
-        uuid: secureId,
+        legacy_slug: null, // New rooms do not use legacy slugs
+        secret_hash: secretHash,
         title: validated.title,
         description: validated.description,
         schedule_type: validated.schedule_type,
@@ -47,8 +78,12 @@ export async function createRoom(input: CreateRoomInput): Promise<Room> {
       return createRoomMock(input);
     }
 
+    // Fire and forget Audit Log
+    logAuditTrail('ROOM_CREATED', data.id, { title: data.title });
+
     return {
       id: data.id,
+      secret_hash: secretHash,
       title: data.title,
       description: data.description,
       schedule_type: data.schedule_type,
@@ -62,59 +97,81 @@ export async function createRoom(input: CreateRoomInput): Promise<Room> {
 }
 
 /**
- * Dual-Lookup Room Query Strategy:
- * 1. Search by `id` (Supports newly created UUIDs and existing legacy IDs).
- * 2. Search by `uuid` (Supports newly migrated UUID columns).
- * 3. Search by `slug` (Supports legacy human-readable slugs like demo-room-1).
- * Zero downtime guarantee: Users using legacy URLs like /room/demo-room-1 will NEVER get 404!
+ * Enterprise Dual-Lookup Room Query Strategy:
+ * 1. Memory Regex Check: Test if target string matches UUID v4 pattern.
+ * 2. If UUID ➔ Execute Direct O(1) Primary Key Index Scan (`id = target`).
+ * 3. If NOT UUID ➔ Execute Direct O(1) B-Tree Index Scan (`legacy_slug = target`).
+ * Zero Downtime Guarantee: Completely eliminates 404s for legacy URLs without slow OR queries!
  */
 export async function getRoomById(idOrSlug: string): Promise<Room | null> {
   if (!idOrSlug) return null;
 
   const target = idOrSlug.trim();
+  const isUuid = UUID_V4_REGEX.test(target);
 
   if (isSupabaseConfigured && supabaseServer) {
-    // 1. Primary Lookup by Primary Key (id)
-    const { data: primaryData } = await supabaseServer
-      .from('rooms')
-      .select('*')
-      .eq('id', target)
-      .maybeSingle();
+    if (isUuid) {
+      // Direct O(1) Index Scan on Primary Key `id`
+      const { data } = await supabaseServer
+        .from('rooms')
+        .select('*')
+        .eq('id', target)
+        .is('deleted_at', null)
+        .maybeSingle();
 
-    if (primaryData) {
-      return {
-        id: primaryData.id,
-        title: primaryData.title,
-        description: primaryData.description,
-        schedule_type: primaryData.schedule_type,
-        candidate_dates: primaryData.candidate_dates,
-        time_slots: primaryData.time_slots,
-        created_at: primaryData.created_at,
-      };
+      if (data) {
+        return {
+          id: data.id,
+          legacy_slug: data.legacy_slug,
+          title: data.title,
+          description: data.description,
+          schedule_type: data.schedule_type,
+          candidate_dates: data.candidate_dates,
+          time_slots: data.time_slots,
+          created_at: data.created_at,
+        };
+      }
+    } else {
+      // Direct O(1) Index Scan on `legacy_slug`
+      const { data } = await supabaseServer
+        .from('rooms')
+        .select('*')
+        .eq('legacy_slug', target)
+        .is('deleted_at', null)
+        .maybeSingle();
+
+      if (data) {
+        return {
+          id: data.id,
+          legacy_slug: data.legacy_slug,
+          title: data.title,
+          description: data.description,
+          schedule_type: data.schedule_type,
+          candidate_dates: data.candidate_dates,
+          time_slots: data.time_slots,
+          created_at: data.created_at,
+        };
+      }
     }
 
-    // 2. Secondary Lookup by Legacy `slug` or `uuid` Column
-    const { data: fallbackData } = await supabaseServer
-      .from('rooms')
-      .select('*')
-      .or(`slug.eq.${target},uuid.eq.${target}`)
-      .maybeSingle();
-
-    if (fallbackData) {
-      return {
-        id: fallbackData.id,
-        title: fallbackData.title,
-        description: fallbackData.description,
-        schedule_type: fallbackData.schedule_type,
-        candidate_dates: fallbackData.candidate_dates,
-        time_slots: fallbackData.time_slots,
-        created_at: fallbackData.created_at,
-      };
-    }
-
-    // 3. Fallback to Mock Store for Demo Rooms (e.g. demo-room-1)
     return getRoomByIdMock(target);
   }
 
   return getRoomByIdMock(target);
+}
+
+export async function softDeleteRoom(id: string): Promise<boolean> {
+  if (!id) return false;
+  if (isSupabaseConfigured && supabaseServer) {
+    const { error } = await supabaseServer
+      .from('rooms')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (!error) {
+      logAuditTrail('ROOM_DELETED', id);
+      return true;
+    }
+  }
+  return false;
 }

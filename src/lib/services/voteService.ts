@@ -3,8 +3,8 @@ import { SubmitVoteInputSchema, DeleteVoteInputSchema } from '@/lib/validation/s
 import { supabaseServer, isSupabaseConfigured } from '@/lib/supabase/server';
 import { getVotesByRoomIdMock, submitVoteMock } from '@/lib/mockStore';
 import { hashPassword } from '@/lib/crypto';
+import { logAuditTrail } from './roomService';
 
-// Custom error for HTTP 409 Conflict handling
 export class VoteConflictError extends Error {
   constructor(message: string) {
     super(message);
@@ -41,23 +41,31 @@ function clearFailedAttempt(key: string): void {
   delete FAILED_ATTEMPTS[key];
 }
 
+function generateVoteToken(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `vt-${Math.random().toString(36).substring(2, 11)}-${Date.now()}`;
+}
+
 export async function getVotesByRoomId(roomId: string): Promise<Vote[]> {
   if (!roomId) return [];
 
   if (isSupabaseConfigured && supabaseServer) {
     const { data, error } = await supabaseServer
       .from('votes')
-      .select('id, room_id, nickname, availability, note, created_at, updated_at')
-      .eq('room_id', roomId);
+      .select('id, room_id, vote_token, nickname, availability, note, created_at, updated_at')
+      .eq('room_id', roomId)
+      .is('deleted_at', null);
 
     if (error || !data || data.length === 0) {
       return getVotesByRoomIdMock(roomId);
     }
 
-    // Explicitly omit password_hash from returning response
     return data.map((v) => ({
       id: v.id,
       room_id: v.room_id,
+      vote_token: v.vote_token,
       nickname: v.nickname,
       password_hash: undefined,
       availability: v.availability,
@@ -71,36 +79,35 @@ export async function getVotesByRoomId(roomId: string): Promise<Vote[]> {
 }
 
 export async function submitVote(input: SubmitVoteInput): Promise<Vote> {
-  // 1. Zod Server Validation
   const validated = SubmitVoteInputSchema.parse(input);
 
   const attemptKey = `${validated.room_id}_${validated.nickname.toLowerCase()}`;
   const hashedInputPw = validated.password ? await hashPassword(validated.password) : '';
 
   if (isSupabaseConfigured && supabaseServer) {
-    // Check existing vote for ownership & password verification
     const { data: existingVotes } = await supabaseServer
       .from('votes')
       .select('*')
       .eq('room_id', validated.room_id)
-      .ilike('nickname', validated.nickname);
+      .ilike('nickname', validated.nickname)
+      .is('deleted_at', null);
 
     const existing = existingVotes && existingVotes.length > 0 ? existingVotes[0] : null;
 
     if (existing) {
       checkRateLimit(attemptKey);
 
-      // Verify edit password credential
-      if (existing.password_hash) {
-        if (!hashedInputPw || existing.password_hash !== hashedInputPw) {
-          recordFailedAttempt(attemptKey);
-          throw new Error('비밀번호가 일치하지 않습니다. 본인의 닉네임과 설정한 비밀번호를 확인해 주세요.');
-        }
+      // Verify vote ownership via Token OR Password Hash
+      const tokenMatch = validated.vote_token && existing.vote_token && validated.vote_token === existing.vote_token;
+      const pwMatch = existing.password_hash && hashedInputPw && existing.password_hash === hashedInputPw;
+
+      if (existing.password_hash && !tokenMatch && !pwMatch) {
+        recordFailedAttempt(attemptKey);
+        throw new Error('비밀번호가 일치하지 않습니다. 본인의 닉네임과 설정한 비밀번호를 확인해 주세요.');
       }
 
       clearFailedAttempt(attemptKey);
 
-      // Upsert/Update Vote
       const { data: updated, error } = await supabaseServer
         .from('votes')
         .update({
@@ -118,9 +125,12 @@ export async function submitVote(input: SubmitVoteInput): Promise<Vote> {
         return submitVoteMock(input);
       }
 
+      logAuditTrail('VOTE_UPDATED', updated.id, { room_id: updated.room_id, nickname: updated.nickname });
+
       return {
         id: updated.id,
         room_id: updated.room_id,
+        vote_token: updated.vote_token,
         nickname: updated.nickname,
         password_hash: undefined,
         availability: updated.availability,
@@ -129,11 +139,12 @@ export async function submitVote(input: SubmitVoteInput): Promise<Vote> {
         updated_at: updated.updated_at,
       };
     } else {
-      // Insert new vote
+      const voteToken = generateVoteToken();
       const { data: inserted, error } = await supabaseServer
         .from('votes')
         .insert({
           room_id: validated.room_id,
+          vote_token: voteToken,
           nickname: validated.nickname,
           password_hash: hashedInputPw,
           availability: validated.availability,
@@ -150,9 +161,12 @@ export async function submitVote(input: SubmitVoteInput): Promise<Vote> {
         return submitVoteMock(input);
       }
 
+      logAuditTrail('VOTE_CREATED', inserted.id, { room_id: inserted.room_id, nickname: inserted.nickname });
+
       return {
         id: inserted.id,
         room_id: inserted.room_id,
+        vote_token: inserted.vote_token,
         nickname: inserted.nickname,
         password_hash: undefined,
         availability: inserted.availability,
@@ -167,7 +181,6 @@ export async function submitVote(input: SubmitVoteInput): Promise<Vote> {
 }
 
 export async function deleteVote(input: DeleteVoteInput): Promise<{ success: boolean }> {
-  // 1. Zod Server Validation
   const validated = DeleteVoteInputSchema.parse(input);
 
   const attemptKey = `${validated.room_id}_${validated.nickname.toLowerCase()}`;
@@ -178,7 +191,8 @@ export async function deleteVote(input: DeleteVoteInput): Promise<{ success: boo
       .from('votes')
       .select('*')
       .eq('room_id', validated.room_id)
-      .ilike('nickname', validated.nickname);
+      .ilike('nickname', validated.nickname)
+      .is('deleted_at', null);
 
     const existing = existingVotes && existingVotes.length > 0 ? existingVotes[0] : null;
 
@@ -188,24 +202,28 @@ export async function deleteVote(input: DeleteVoteInput): Promise<{ success: boo
 
     checkRateLimit(attemptKey);
 
-    if (existing.password_hash) {
-      if (!hashedInputPw || existing.password_hash !== hashedInputPw) {
-        recordFailedAttempt(attemptKey);
-        throw new Error('닉네임 또는 PIN이 올바르지 않습니다.');
-      }
+    const tokenMatch = validated.vote_token && existing.vote_token && validated.vote_token === existing.vote_token;
+    const pwMatch = existing.password_hash && hashedInputPw && existing.password_hash === hashedInputPw;
+
+    if (existing.password_hash && !tokenMatch && !pwMatch) {
+      recordFailedAttempt(attemptKey);
+      throw new Error('닉네임 또는 PIN이 올바르지 않습니다.');
     }
 
     clearFailedAttempt(attemptKey);
 
+    // Execute Soft Delete
     const { error } = await supabaseServer
       .from('votes')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', existing.id);
 
     if (error) {
       console.error('Supabase DB vote delete failed:', error.message);
       throw new Error('투표 삭제 중 오류가 발생했습니다.');
     }
+
+    logAuditTrail('VOTE_DELETED', existing.id, { room_id: existing.room_id, nickname: existing.nickname });
 
     return { success: true };
   }
