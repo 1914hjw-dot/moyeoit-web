@@ -3,7 +3,7 @@ import { SubmitVoteInputSchema, DeleteVoteInputSchema } from '@/lib/validation/s
 import { supabaseServer, isSupabaseConfigured } from '@/lib/supabase/server';
 import { getVotesByRoomIdMock, submitVoteMock } from '@/lib/mockStore';
 import { hashPassword } from '@/lib/crypto';
-import { logAuditTrail } from './roomService';
+import { getRoomById, logAuditTrail } from './roomService';
 
 export class VoteConflictError extends Error {
   constructor(message: string) {
@@ -51,15 +51,24 @@ function generateVoteToken(): string {
 export async function getVotesByRoomId(roomId: string): Promise<Vote[]> {
   if (!roomId) return [];
 
+  // Resolve target room to determine actual DB Primary Key room.id
+  const targetRoom = await getRoomById(roomId);
+  const actualRoomId = targetRoom ? targetRoom.id : roomId;
+
   if (isSupabaseConfigured && supabaseServer) {
     const { data, error } = await supabaseServer
       .from('votes')
       .select('id, room_id, vote_token, nickname, availability, note, created_at, updated_at')
-      .eq('room_id', roomId)
+      .eq('room_id', actualRoomId)
       .is('deleted_at', null);
 
-    if (error || !data || data.length === 0) {
-      return getVotesByRoomIdMock(roomId);
+    if (error) {
+      console.error('Supabase DB getVotesByRoomId error:', error.message);
+      throw new Error(`DB 투표 목록 조회 실패: ${error.message}`);
+    }
+
+    if (!data || data.length === 0) {
+      return [];
     }
 
     return data.map((v) => ({
@@ -81,16 +90,28 @@ export async function getVotesByRoomId(roomId: string): Promise<Vote[]> {
 export async function submitVote(input: SubmitVoteInput): Promise<Vote> {
   const validated = SubmitVoteInputSchema.parse(input);
 
-  const attemptKey = `${validated.room_id}_${validated.nickname.toLowerCase()}`;
+  // 1. Resolve target room to obtain true PostgreSQL Primary Key UUID
+  const targetRoom = await getRoomById(validated.room_id);
+  if (!targetRoom) {
+    throw new Error('존재하지 않는 약속 방입니다.');
+  }
+
+  const actualRoomId = targetRoom.id; // PostgreSQL rooms.id (Primary Key UUID)
+  const attemptKey = `${actualRoomId}_${validated.nickname.toLowerCase()}`;
   const hashedInputPw = validated.password ? await hashPassword(validated.password) : '';
 
   if (isSupabaseConfigured && supabaseServer) {
-    const { data: existingVotes } = await supabaseServer
+    const { data: existingVotes, error: searchError } = await supabaseServer
       .from('votes')
       .select('*')
-      .eq('room_id', validated.room_id)
+      .eq('room_id', actualRoomId)
       .ilike('nickname', validated.nickname)
       .is('deleted_at', null);
+
+    if (searchError) {
+      console.error('Supabase DB vote search error:', searchError.message);
+      throw new Error(`DB 투표 조회 실패: ${searchError.message}`);
+    }
 
     const existing = existingVotes && existingVotes.length > 0 ? existingVotes[0] : null;
 
@@ -108,7 +129,7 @@ export async function submitVote(input: SubmitVoteInput): Promise<Vote> {
 
       clearFailedAttempt(attemptKey);
 
-      const { data: updated, error } = await supabaseServer
+      const { data: updated, error: updateError } = await supabaseServer
         .from('votes')
         .update({
           password_hash: hashedInputPw || existing.password_hash,
@@ -120,9 +141,9 @@ export async function submitVote(input: SubmitVoteInput): Promise<Vote> {
         .select()
         .single();
 
-      if (error) {
-        console.error('Supabase DB vote update failed:', error.message);
-        return submitVoteMock(input);
+      if (updateError) {
+        console.error('Supabase DB vote update failed:', updateError.message);
+        throw new Error(`DB 투표 수정 실패: ${updateError.message}`);
       }
 
       logAuditTrail('VOTE_UPDATED', updated.id, { room_id: updated.room_id, nickname: updated.nickname });
@@ -140,10 +161,10 @@ export async function submitVote(input: SubmitVoteInput): Promise<Vote> {
       };
     } else {
       const voteToken = generateVoteToken();
-      const { data: inserted, error } = await supabaseServer
+      const { data: inserted, error: insertError } = await supabaseServer
         .from('votes')
         .insert({
-          room_id: validated.room_id,
+          room_id: actualRoomId, // MUST USE PRIMARY KEY UUID TO SATISFY FOREIGN KEY CONSTRAINT!
           vote_token: voteToken,
           nickname: validated.nickname,
           password_hash: hashedInputPw,
@@ -153,12 +174,12 @@ export async function submitVote(input: SubmitVoteInput): Promise<Vote> {
         .select()
         .single();
 
-      if (error) {
-        console.error('Supabase DB vote insert error code:', error.code, error.message);
-        if (error.code === '23505' || error.message?.includes('unique_room_nickname') || error.message?.includes('duplicate key')) {
+      if (insertError) {
+        console.error('Supabase DB vote insert error code:', insertError.code, insertError.message);
+        if (insertError.code === '23505' || insertError.message?.includes('unique_room_nickname') || insertError.message?.includes('duplicate key')) {
           throw new VoteConflictError('이미 등록된 닉네임입니다. 본인의 닉네임인 경우 수정 비밀번호를 입력하시거나 다른 닉네임을 사용해 주세요.');
         }
-        return submitVoteMock(input);
+        throw new Error(`DB 투표 저장 실패: ${insertError.message}`);
       }
 
       logAuditTrail('VOTE_CREATED', inserted.id, { room_id: inserted.room_id, nickname: inserted.nickname });
@@ -183,16 +204,26 @@ export async function submitVote(input: SubmitVoteInput): Promise<Vote> {
 export async function deleteVote(input: DeleteVoteInput): Promise<{ success: boolean }> {
   const validated = DeleteVoteInputSchema.parse(input);
 
-  const attemptKey = `${validated.room_id}_${validated.nickname.toLowerCase()}`;
+  const targetRoom = await getRoomById(validated.room_id);
+  if (!targetRoom) {
+    throw new Error('존재하지 않는 약속 방입니다.');
+  }
+
+  const actualRoomId = targetRoom.id;
+  const attemptKey = `${actualRoomId}_${validated.nickname.toLowerCase()}`;
   const hashedInputPw = validated.password ? await hashPassword(validated.password) : '';
 
   if (isSupabaseConfigured && supabaseServer) {
-    const { data: existingVotes } = await supabaseServer
+    const { data: existingVotes, error: searchError } = await supabaseServer
       .from('votes')
       .select('*')
-      .eq('room_id', validated.room_id)
+      .eq('room_id', actualRoomId)
       .ilike('nickname', validated.nickname)
       .is('deleted_at', null);
+
+    if (searchError) {
+      throw new Error(`DB 투표 조회 실패: ${searchError.message}`);
+    }
 
     const existing = existingVotes && existingVotes.length > 0 ? existingVotes[0] : null;
 
@@ -213,14 +244,14 @@ export async function deleteVote(input: DeleteVoteInput): Promise<{ success: boo
     clearFailedAttempt(attemptKey);
 
     // Execute Soft Delete
-    const { error } = await supabaseServer
+    const { error: deleteError } = await supabaseServer
       .from('votes')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', existing.id);
 
-    if (error) {
-      console.error('Supabase DB vote delete failed:', error.message);
-      throw new Error('투표 삭제 중 오류가 발생했습니다.');
+    if (deleteError) {
+      console.error('Supabase DB vote delete failed:', deleteError.message);
+      throw new Error(`DB 투표 삭제 실패: ${deleteError.message}`);
     }
 
     logAuditTrail('VOTE_DELETED', existing.id, { room_id: existing.room_id, nickname: existing.nickname });

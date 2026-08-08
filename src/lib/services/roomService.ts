@@ -3,46 +3,35 @@ import { CreateRoomInputSchema, ConfirmRoomInputSchema } from '@/lib/validation/
 import { supabaseServer, isSupabaseConfigured } from '@/lib/supabase/server';
 import { createRoomMock, getRoomByIdMock, confirmRoomDateMock } from '@/lib/mockStore';
 
-// ISO 8601 UUID v4 Regular Expression for Instant In-Memory Format Checking
 const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function generateSecureUUID(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  const bytes = new Uint8Array(16);
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    crypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
-  }
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
-// Generate branded short public identifier slug for user-facing URLs (e.g., moyeoit-x89ab3f)
 function generateShortSlug(): string {
-  return `moyeoit-${Math.random().toString(36).substring(2, 9)}`;
+  const shortId = Math.random().toString(36).substring(2, 9);
+  return `moyeoit-${shortId}`;
 }
 
-// Generate 32-byte Random Secret Hex Token for Host Administration
 function generateHostSecret(): string {
-  const bytes = new Uint8Array(32);
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    crypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < 32; i++) bytes[i] = Math.floor(Math.random() * 256);
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `${crypto.randomUUID()}-${Date.now().toString(36)}`;
   }
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  return `hs-${Math.random().toString(36).substring(2, 15)}-${Date.now()}`;
 }
 
-// Audit Trail Logging Helper
 export async function logAuditTrail(
-  eventType: 'ROOM_CREATED' | 'ROOM_CONFIRMED' | 'ROOM_DELETED' | 'VOTE_CREATED' | 'VOTE_UPDATED' | 'VOTE_DELETED',
+  eventType: string,
   targetId: string,
-  payload?: any
+  payload?: Record<string, any>
 ): Promise<void> {
   if (!isSupabaseConfigured || !supabaseServer) return;
   try {
@@ -84,11 +73,10 @@ export async function createRoom(input: CreateRoomInput): Promise<Room> {
       .single();
 
     if (error) {
-      console.error('Supabase DB room creation failed:', error.message);
-      return createRoomMock(input);
+      console.error('Supabase DB room creation error:', error.message);
+      throw new Error(`DB 모임방 생성 실패: ${error.message}`);
     }
 
-    // Fire and forget Audit Log
     logAuditTrail('ROOM_CREATED', data.id, { title: data.title });
 
     return {
@@ -126,7 +114,12 @@ export async function getRoomById(idOrSlug: string): Promise<Room | null> {
       query = query.eq('legacy_slug', target);
     }
 
-    const { data } = await query.maybeSingle();
+    const { data, error } = await query.maybeSingle();
+
+    if (error) {
+      console.error('Supabase DB getRoomById error:', error.message);
+      throw new Error(`DB 모임방 조회 실패: ${error.message}`);
+    }
 
     if (data) {
       return {
@@ -146,17 +139,12 @@ export async function getRoomById(idOrSlug: string): Promise<Room | null> {
       };
     }
 
-    return getRoomByIdMock(target);
+    return null;
   }
 
   return getRoomByIdMock(target);
 }
 
-/**
- * Confirm Room Date Endpoint Logic:
- * Server-Side Host Authorization Check:
- * Verifies host_secret against database secret_hash before mutating status to CONFIRMED.
- */
 export async function confirmRoomDate(input: ConfirmRoomInput): Promise<Room> {
   const validated = ConfirmRoomInputSchema.parse(input);
   const room = await getRoomById(validated.room_id);
@@ -165,7 +153,7 @@ export async function confirmRoomDate(input: ConfirmRoomInput): Promise<Room> {
     throw new Error('존재하지 않는 약속 방입니다.');
   }
 
-  // Server-Side Authorization Check
+  // Server-Side Host Authorization Check
   if (room.secret_hash && validated.host_secret !== room.secret_hash) {
     throw new Error('방장 권한이 없습니다. 이 약속 방을 만든 브라우저에서만 확정이 가능합니다.');
   }
@@ -185,7 +173,7 @@ export async function confirmRoomDate(input: ConfirmRoomInput): Promise<Room> {
 
     if (error) {
       console.error('Supabase DB room confirmation failed:', error.message);
-      return confirmRoomDateMock(validated);
+      throw new Error(`DB 모임방 확정 실패: ${error.message}`);
     }
 
     logAuditTrail('ROOM_CONFIRMED', room.id, { confirmed_date: validated.confirmed_date });
@@ -209,10 +197,13 @@ export async function softDeleteRoom(id: string): Promise<boolean> {
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', id);
 
-    if (!error) {
-      logAuditTrail('ROOM_DELETED', id);
-      return true;
+    if (error) {
+      console.error('Supabase DB softDeleteRoom failed:', error.message);
+      throw new Error(`DB 모임방 삭제 실패: ${error.message}`);
     }
+
+    logAuditTrail('ROOM_DELETED', id);
+    return true;
   }
   return false;
 }
