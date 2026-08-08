@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AvailabilityStatus, HeatmapCellData } from '@/types/schema';
-import { ChevronLeft, ChevronRight, CheckCheck, X, Calendar as CalendarIcon, Sparkles, Clock, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { AvailabilityStatus, HeatmapCellData, DateSelectionMode } from '@/types/schema';
+import { ChevronLeft, ChevronRight, CheckCheck, X, Calendar as CalendarIcon, Sparkles, Clock, Check, Globe } from 'lucide-react';
 import { formatKoreanDate } from '@/lib/analytics';
 
 interface CalendarVoteSelectorProps {
@@ -13,55 +13,70 @@ interface CalendarVoteSelectorProps {
   scheduleType?: 'date_only' | 'date_time';
   heatmapData?: Record<string, HeatmapCellData>;
   readOnly?: boolean;
+  dateSelectionMode?: DateSelectionMode;
 }
 
 const WEEKDAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 
 export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
-  candidateDates,
+  candidateDates = [],
   availability,
   onChangeAvailability,
   timeSlots = [],
   scheduleType = 'date_only',
   heatmapData = {},
   readOnly = false,
+  dateSelectionMode = 'RANGE',
 }) => {
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [activeDateTimeModalDate, setActiveDateTimeModalDate] = useState<string | null>(null);
 
-  const isDateTimeMode = scheduleType === 'date_time' && timeSlots.length > 0;
+  const isFreeMode = dateSelectionMode === 'FREE' || (!candidateDates || candidateDates.length === 0);
+  const isDateTimeMode = !isFreeMode && scheduleType === 'date_time' && timeSlots.length > 0;
 
-  if (!candidateDates || candidateDates.length === 0) {
-    return (
-      <div className="p-5 text-center text-xs text-slate-500 bg-slate-50 rounded-2xl border border-slate-200">
-        등록된 후보 날짜가 없습니다.
-      </div>
-    );
-  }
-
-  // Extract unique months from candidate dates (sorted)
+  // Extract or generate candidate months
   const candidateMonths: { year: number; month: number; key: string }[] = [];
-  const candidateSet = new Set(candidateDates);
 
-  for (const dateStr of candidateDates) {
-    const [y, m] = dateStr.split('-').map(Number);
-    const key = `${y}-${m}`;
-    if (!candidateMonths.some((cm) => cm.key === key)) {
-      candidateMonths.push({ year: y, month: m, key });
+  if (isFreeMode) {
+    // FREE mode: Generate current month + 5 future months
+    const now = new Date();
+    const startY = now.getFullYear();
+    const startM = now.getMonth() + 1; // 1..12
+    for (let offset = 0; offset < 6; offset++) {
+      const mDate = new Date(startY, startM - 1 + offset, 1);
+      const y = mDate.getFullYear();
+      const m = mDate.getMonth() + 1;
+      candidateMonths.push({ year: y, month: m, key: `${y}-${m}` });
     }
+  } else {
+    // RANGE mode: Extract unique months from candidateDates
+    const candidateSet = new Set(candidateDates);
+    for (const dateStr of candidateDates) {
+      const [y, m] = dateStr.split('-').map(Number);
+      const key = `${y}-${m}`;
+      if (!candidateMonths.some((cm) => cm.key === key)) {
+        candidateMonths.push({ year: y, month: m, key });
+      }
+    }
+    candidateMonths.sort((a, b) => (a.year !== b.year ? a.year - b.year : a.month - b.month));
   }
-
-  candidateMonths.sort((a, b) => (a.year !== b.year ? a.year - b.year : a.month - b.month));
 
   const [currentMonthIndex, setCurrentMonthIndex] = useState(0);
-  const activeMonth = candidateMonths[currentMonthIndex] || candidateMonths[0];
+  const activeMonth = candidateMonths[currentMonthIndex] || candidateMonths[0] || {
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+    key: `${new Date().getFullYear()}-${new Date().getMonth() + 1}`,
+  };
 
   const year = activeMonth.year;
   const monthIndex = activeMonth.month - 1; // 0-indexed for JS Date
   const firstDayOfWeek = new Date(year, monthIndex, 1).getDay();
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
 
-  const calendarDays: { dateStr: string; dayNum: number; isCurrentMonth: boolean; isCandidate: boolean }[] = [];
+  const calendarDays: { dateStr: string; dayNum: number; isCurrentMonth: boolean; isCandidate: boolean; isPast: boolean }[] = [];
+  const candidateSet = new Set(candidateDates || []);
+
+  const todayStr = new Date().toISOString().split('T')[0];
 
   const prevMonthDays = new Date(year, monthIndex, 0).getDate();
   for (let i = firstDayOfWeek - 1; i >= 0; i--) {
@@ -73,6 +88,7 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
       dayNum,
       isCurrentMonth: false,
       isCandidate: false,
+      isPast: true,
     });
   }
 
@@ -80,11 +96,15 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
     const mStr = (monthIndex + 1).toString().padStart(2, '0');
     const dStr = d.toString().padStart(2, '0');
     const dateStr = `${year}-${mStr}-${dStr}`;
+    const isPast = dateStr < todayStr;
+    const isCand = isFreeMode ? !isPast : candidateSet.has(dateStr);
+
     calendarDays.push({
       dateStr,
       dayNum: d,
       isCurrentMonth: true,
-      isCandidate: candidateSet.has(dateStr),
+      isCandidate: isCand,
+      isPast,
     });
   }
 
@@ -98,6 +118,7 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
         dayNum: d,
         isCurrentMonth: false,
         isCandidate: false,
+        isPast: false,
       });
     }
   }
@@ -106,7 +127,11 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
   const handleSetAll = (status: AvailabilityStatus) => {
     if (readOnly) return;
     const updated = { ...availability };
-    for (const d of candidateDates) {
+    const datesToSet = isFreeMode
+      ? calendarDays.filter((c) => c.isCurrentMonth && !c.isPast).map((c) => c.dateStr)
+      : candidateDates;
+
+    for (const d of datesToSet) {
       if (isDateTimeMode) {
         for (const slot of timeSlots) {
           updated[`${d}_${slot}`] = status;
@@ -116,36 +141,39 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
       }
     }
     onChangeAvailability(updated);
-    setFeedbackMsg(status === 'possible' ? '모든 시간대가 [가능]으로 설정되었습니다!' : '모든 시간대가 [불가]로 설정되었습니다!');
+    setFeedbackMsg(status === 'possible' ? '선택된 일자가 [가능]으로 설정되었습니다!' : '선택된 일자가 [불가]로 설정되었습니다!');
     setTimeout(() => setFeedbackMsg(''), 2500);
   };
 
   // Toggle status for single key (date or date_slot)
   const handleToggleStatus = (key: string) => {
     if (readOnly) return;
-    const current = availability[key] || 'possible';
-    let next: AvailabilityStatus = 'impossible';
+    const current = availability[key];
+    let next: AvailabilityStatus = 'possible';
+
     if (current === 'possible') next = 'impossible';
     else if (current === 'impossible') next = 'maybe';
     else if (current === 'maybe') next = 'possible';
+    else next = 'possible';
 
-    onChangeAvailability({
-      ...availability,
-      [key]: next,
-    });
+    const updated = { ...availability, [key]: next };
+    onChangeAvailability(updated);
   };
 
   // Check overall date status for date_time mode summary badge
   const getDateStatusSummary = (dateStr: string) => {
-    if (!isDateTimeMode) return availability[dateStr] || 'possible';
+    if (!isDateTimeMode) return availability[dateStr];
 
-    const statuses = timeSlots.map((slot) => availability[`${dateStr}_${slot}`] || 'possible');
+    const statuses = timeSlots.map((slot) => availability[`${dateStr}_${slot}`]);
     const allPossible = statuses.every((s) => s === 'possible');
     const allImpossible = statuses.every((s) => s === 'impossible');
     if (allPossible) return 'possible';
     if (allImpossible) return 'impossible';
-    return 'maybe';
+    if (statuses.some((s) => s === 'possible' || s === 'maybe')) return 'maybe';
+    return undefined;
   };
+
+  const selectedCount = Object.values(availability).filter((s) => s === 'possible').length;
 
   return (
     <div className="w-full sys-card p-4 sm:p-5 space-y-4 border-slate-200/80 shadow-md bg-white rounded-3xl">
@@ -153,13 +181,13 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200">
-            <CalendarIcon className="w-4 h-4" />
+            {isFreeMode ? <Globe className="w-4 h-4 text-emerald-600" /> : <CalendarIcon className="w-4 h-4 text-indigo-600" />}
           </div>
           <h4 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
             {activeMonth.year}년 {activeMonth.month}월
           </h4>
           <span className="text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full">
-            {isDateTimeMode ? '날짜 + 시간대 조율' : `후보 ${candidateDates.length}일`}
+            {isFreeMode ? `자유 선택 (${selectedCount}개 선택)` : isDateTimeMode ? '날짜 + 시간대 조율' : `후보 ${candidateDates.length}일`}
           </span>
         </div>
 
@@ -194,7 +222,7 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
           <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">
             <span className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5 text-slate-700" />
-              <span>{isDateTimeMode ? '날짜 클릭 후 가능 시간대를 선택하세요' : '안 되는 날짜만 눌러서 해제하세요'}</span>
+              <span>{isFreeMode ? '캘린더에서 가능한 날짜를 자유롭게 클릭하세요' : isDateTimeMode ? '날짜 클릭 후 가능 시간대를 선택하세요' : '안 되는 날짜만 눌러서 해제하세요'}</span>
             </span>
             <div className="flex items-center gap-1.5 shrink-0">
               <button
@@ -203,7 +231,7 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
                 className="px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 cursor-pointer transition-all flex items-center gap-1 shadow-xs"
               >
                 <CheckCheck className="w-3 h-3" />
-                <span>전체 가능</span>
+                <span>당월 전체 가능</span>
               </button>
               <button
                 type="button"
@@ -211,7 +239,7 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
                 className="px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 cursor-pointer transition-all flex items-center gap-1 shadow-xs"
               >
                 <X className="w-3 h-3" />
-                <span>전체 불가</span>
+                <span>당월 전체 해제</span>
               </button>
             </div>
           </div>
@@ -264,12 +292,14 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
 
           const isPossible = status === 'possible';
           const isMaybe = status === 'maybe';
+          const isImpossible = status === 'impossible';
+          const isUnselected = status === undefined;
 
           return (
             <button
               key={idx}
               type="button"
-              disabled={readOnly}
+              disabled={readOnly || cell.isPast}
               aria-pressed={isPossible}
               onClick={() => {
                 if (isDateTimeMode) {
@@ -279,11 +309,15 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
                 }
               }}
               className={`h-13 sm:h-15 rounded-2xl p-1.5 sm:p-2 flex flex-col justify-between transition-all text-left cursor-pointer border shadow-xs active:scale-95 ${
-                isPossible
+                cell.isPast
+                  ? 'bg-slate-100/50 border-slate-200/50 text-slate-400 opacity-40 cursor-not-allowed'
+                  : isPossible
                   ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 hover:bg-emerald-100 ring-1 ring-emerald-400/30'
                   : isMaybe
                   ? 'bg-amber-50/90 border-amber-300 text-amber-950 hover:bg-amber-100 ring-1 ring-amber-400/30'
-                  : 'bg-rose-50/90 border-rose-300 text-rose-950 hover:bg-rose-100 ring-1 ring-rose-400/30'
+                  : isImpossible
+                  ? 'bg-rose-50/90 border-rose-300 text-rose-950 hover:bg-rose-100 ring-1 ring-rose-400/30'
+                  : 'bg-slate-50 hover:bg-indigo-50 border-slate-200/80 hover:border-indigo-300 text-slate-700 font-semibold'
               }`}
             >
               <div className="flex items-center justify-between w-full">
@@ -298,12 +332,16 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
                       ? '전체가능'
                       : isMaybe
                       ? '부분가능'
-                      : '불가'
+                      : isImpossible
+                      ? '불가'
+                      : '선택 안 됨'
                     : isPossible
                     ? '가능'
                     : isMaybe
                     ? '미정'
-                    : '불가'}
+                    : isImpossible
+                    ? '불가'
+                    : '클릭 선택'}
                 </span>
               </div>
             </button>
@@ -389,7 +427,7 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
       {/* Legend Footer */}
       <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
         <span className="text-slate-400">
-          {isDateTimeMode ? '날짜 터치 시 시간대별 가능 여부 설정' : '날짜 터치 시 [가능➔불가➔미정] 순서 변경'}
+          {isFreeMode ? '원하는 날짜를 터치하여 [가능➔불가➔미정] 선택' : isDateTimeMode ? '날짜 터치 시 시간대별 가능 여부 설정' : '날짜 터치 시 [가능➔불가➔미정] 순서 변경'}
         </span>
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1 text-emerald-700 font-bold">

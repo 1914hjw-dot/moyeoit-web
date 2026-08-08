@@ -18,36 +18,43 @@ export function computeHeatmapData(room: Room, votes: Vote[]): Record<string, He
   const result: Record<string, HeatmapCellData> = {};
   const isDateTime = room.schedule_type === 'date_time';
 
-  // Initialize keys for candidates
-  for (const date of room.candidate_dates) {
-    if (isDateTime && room.time_slots && room.time_slots.length > 0) {
-      for (const slot of room.time_slots) {
-        const key = `${date}_${slot}`;
-        result[key] = {
-          key,
-          date,
-          time_slot: slot,
-          possible_count: 0,
-          maybe_count: 0,
-          impossible_count: 0,
-          total_votes: votes.length,
-          ratio: 0,
-          attendees: [],
-        };
+  // Collect candidate date keys from room.candidate_dates AND all voted availability keys across votes (essential for FREE mode)
+  const candidateKeys = new Set<string>();
+  if (room.candidate_dates && room.candidate_dates.length > 0) {
+    for (const d of room.candidate_dates) {
+      if (isDateTime && room.time_slots && room.time_slots.length > 0) {
+        for (const slot of room.time_slots) {
+          candidateKeys.add(`${d}_${slot}`);
+        }
+      } else {
+        candidateKeys.add(d);
       }
-    } else {
-      const key = date;
-      result[key] = {
-        key,
-        date,
-        possible_count: 0,
-        maybe_count: 0,
-        impossible_count: 0,
-        total_votes: votes.length,
-        ratio: 0,
-        attendees: [],
-      };
     }
+  }
+
+  for (const vote of votes) {
+    if (vote.availability) {
+      for (const key of Object.keys(vote.availability)) {
+        candidateKeys.add(key);
+      }
+    }
+  }
+
+  // Initialize heatmap cells for all candidate keys
+  for (const key of candidateKeys) {
+    const date = key.includes('_') ? key.split('_')[0] : key;
+    const time_slot = key.includes('_') ? key.split('_')[1] : undefined;
+    result[key] = {
+      key,
+      date,
+      time_slot,
+      possible_count: 0,
+      maybe_count: 0,
+      impossible_count: 0,
+      total_votes: votes.length,
+      ratio: 0,
+      attendees: [],
+    };
   }
 
   // Populate votes data
@@ -71,7 +78,6 @@ export function computeHeatmapData(room: Room, votes: Vote[]): Record<string, He
   const totalVoters = votes.length;
   for (const key in result) {
     if (totalVoters > 0) {
-      // Possible = 1.0 weight, Maybe = 0.5 weight
       const weightedScore = result[key].possible_count + result[key].maybe_count * 0.5;
       result[key].ratio = Math.min(1, Math.max(0, weightedScore / totalVoters));
     }

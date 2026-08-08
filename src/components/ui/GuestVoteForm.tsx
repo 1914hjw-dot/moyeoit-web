@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { UserCheck, Sparkles, ShieldCheck, Calendar as CalendarIcon, ChevronDown, ChevronUp, MessageSquare, Eye, EyeOff } from 'lucide-react';
+import { UserCheck, Sparkles, ShieldCheck, Calendar as CalendarIcon, ChevronDown, ChevronUp, MessageSquare, Eye, EyeOff, Globe } from 'lucide-react';
 import { Room, Vote, AvailabilityStatus, SubmitVoteInput } from '@/types/schema';
 import { CalendarVoteSelector } from '@/components/ui/CalendarVoteSelector';
 
@@ -33,7 +33,8 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
     }
   }, [existingVote]);
 
-  const isDateTime = room.schedule_type === 'date_time';
+  const isFreeMode = room.date_selection_mode === 'FREE';
+  const isDateTime = !isFreeMode && room.schedule_type === 'date_time';
   const allSlotKeys: { key: string; date: string; slot?: string }[] = [];
 
   if (isDateTime && room.time_slots.length > 0) {
@@ -42,7 +43,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
         allSlotKeys.push({ key: `${d}_${s}`, date: d, slot: s });
       }
     }
-  } else {
+  } else if (room.candidate_dates && room.candidate_dates.length > 0) {
     for (const d of room.candidate_dates) {
       allSlotKeys.push({ key: d, date: d });
     }
@@ -53,8 +54,10 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
       return { ...existingVote.availability };
     }
     const initial: Record<string, AvailabilityStatus> = {};
-    for (const item of allSlotKeys) {
-      initial[item.key] = 'possible';
+    if (!isFreeMode && allSlotKeys.length > 0) {
+      for (const item of allSlotKeys) {
+        initial[item.key] = 'possible';
+      }
     }
     return initial;
   });
@@ -64,6 +67,15 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
     setErrorMsg('');
     if (!nickname.trim()) {
       alert('이름 또는 닉네임을 입력해 주세요.');
+      return;
+    }
+
+    const possibleKeys = Object.entries(availability).filter(
+      ([_, status]) => status === 'possible' || status === 'maybe'
+    );
+
+    if (isFreeMode && possibleKeys.length === 0) {
+      alert('최소 1개 이상의 가능 날짜를 캘린더에서 클릭해 선택해 주세요.');
       return;
     }
 
@@ -90,14 +102,16 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
         <div className="flex items-center justify-between pb-2 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 font-black">
-              <CalendarIcon className="w-4 h-4" />
+              {isFreeMode ? <Globe className="w-4 h-4 text-emerald-600" /> : <CalendarIcon className="w-4 h-4 text-indigo-600" />}
             </div>
             <div>
               <h3 className="text-sm sm:text-base font-black text-slate-900">
                 {existingVote ? '내 가능 날짜 수정' : '내 가능 날짜 선택하기'}
               </h3>
               <p className="text-[11px] text-slate-500">
-                기본 '가능' 상태입니다. 안 되는 날짜만 눌러 해제해 주세요.
+                {isFreeMode
+                  ? '캘린더에서 본인이 참석 가능한 날짜를 자유롭게 터치하여 선택해 주세요.'
+                  : '기본 \'가능\' 상태입니다. 안 되는 날짜만 눌러 해제해 주세요.'}
               </p>
             </div>
           </div>
@@ -147,6 +161,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
             onChangeAvailability={setAvailability}
             scheduleType={room.schedule_type}
             timeSlots={room.time_slots}
+            dateSelectionMode={room.date_selection_mode}
           />
         </div>
 
