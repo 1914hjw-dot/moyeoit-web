@@ -7,7 +7,7 @@ import { AdFitBanner } from '@/components/ads';
 import { HomeBelowTheFold } from '@/components/ui/HomeBelowTheFold';
 import { Footer } from '@/components/ui/Footer';
 import { ScheduleType, DateSelectionMode } from '@/types/schema';
-import { Sparkles, Calendar, ArrowRight } from 'lucide-react';
+import { Sparkles, Calendar, ArrowRight, CheckCircle2, Globe, ThumbsUp, Share2 } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
@@ -29,8 +29,11 @@ export default function HomePage() {
       alert('모임 제목을 입력해 주세요.');
       return;
     }
-    if (selectedDates.length === 0) {
-      alert('최소 1개 이상의 후보 날짜를 선택해 주세요.');
+
+    // In RANGE mode, require at least 1 candidate date.
+    // In FREE mode, candidate_dates can be empty on room creation.
+    if (dateSelectionMode === 'RANGE' && selectedDates.length === 0) {
+      alert('기간 지정 모드에서는 최소 1개 이상의 후보 날짜를 선택해 주세요.');
       return;
     }
 
@@ -42,9 +45,9 @@ export default function HomePage() {
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim(),
-          schedule_type: scheduleType,
-          candidate_dates: selectedDates,
-          time_slots: scheduleType === 'date_time' ? timeSlots : [],
+          schedule_type: dateSelectionMode === 'FREE' ? 'date_only' : scheduleType,
+          candidate_dates: dateSelectionMode === 'FREE' ? selectedDates : selectedDates,
+          time_slots: scheduleType === 'date_time' && dateSelectionMode !== 'FREE' ? timeSlots : [],
           date_selection_mode: dateSelectionMode,
         }),
       });
@@ -108,11 +111,34 @@ export default function HomePage() {
           </div>
 
           <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-slate-900">
-            약속 날짜, 모여잇으로 10초 만에 정해요.
+            친구들과 약속 날짜, 10초 만에 조율하고 확정해요.
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto">
-            로그인 없이 번거로운 카톡 투표 대신, 가장 많은 친구가 참여 가능한 황금 날짜를 한눈에 발견해 드립니다.
+          <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
+            방장이 날짜를 지정하거나 참여자가 자유롭게 선택하는 2가지 모드 지원! 전원 참석 가능한 황금 날짜를 자동 계산하고 최종 모임 일정을 확정해 드립니다.
           </p>
+        </section>
+
+        {/* Feature Banner Bar: 2가지 날짜 선택 방식 안내 */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-100 space-y-1">
+            <div className="flex items-center gap-1.5 font-extrabold text-indigo-950 text-xs sm:text-sm">
+              <Calendar className="w-4 h-4 text-indigo-600" />
+              <span>1. 기간 내에서 선택</span>
+            </div>
+            <p className="text-[11px] text-indigo-800 leading-relaxed">
+              방장이 지정한 후보 기간 안에서 참여자들이 참석 가능한 날짜를 투표합니다.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-100 space-y-1">
+            <div className="flex items-center gap-1.5 font-extrabold text-emerald-950 text-xs sm:text-sm">
+              <Globe className="w-4 h-4 text-emerald-600" />
+              <span>2. 자유 날짜 선택</span>
+            </div>
+            <p className="text-[11px] text-emerald-800 leading-relaxed">
+              방장이 후보 날짜를 정하지 않고, 참여자들이 각자 가능한 날짜를 자유롭게 선택합니다.
+            </p>
+          </div>
         </section>
 
         {/* Main Room Creation Form Section */}
@@ -124,7 +150,7 @@ export default function HomePage() {
                 <span>새로운 약속 방 만들기</span>
               </h3>
               <p className="text-xs text-slate-500">
-                모임 이름과 후보 날짜를 정하고 단톡방 초대 링크를 발급받으세요.
+                모임 이름과 날짜 선택 방식을 정하고 단톡방 초대 링크를 발급받으세요.
               </p>
             </div>
 
@@ -139,7 +165,7 @@ export default function HomePage() {
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="예: 7월 정기 스터디 / 주말 파티룸 모임"
+                  placeholder="예: 8월 정기 스터디 / 주말 여행 모임"
                   className="w-full sys-input h-11 text-xs sm:text-sm font-semibold"
                 />
               </div>
@@ -161,7 +187,7 @@ export default function HomePage() {
             {/* Calendar Candidate Picker */}
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-2">
-                후보 날짜 지정 <span className="text-rose-500">*</span>
+                후보 날짜 지정 방식 <span className="text-rose-500">*</span>
               </label>
               <CalendarSelector
                 selectedDates={selectedDates}
@@ -191,36 +217,48 @@ export default function HomePage() {
         {/* Kakao AdFit Banner (Placed directly below Room Creation Section) */}
         <AdFitBanner />
 
-        {/* Core 3-Step Workflow Flow */}
+        {/* Core 6-Step Workflow Section */}
         <section className="space-y-3 pt-2">
           <div className="text-center space-y-0.5">
             <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Workflow</h3>
-            <p className="text-sm font-black text-slate-900">약속이 정해지는 가장 자연스러운 3단계</p>
+            <p className="text-sm font-black text-slate-900">모여잇은 이렇게 작동합니다 (6단계 흐름)</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="sys-card p-5 space-y-2 bg-white border-slate-200/80 shadow-sm">
-              <span className="w-7 h-7 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center text-xs font-black">01</span>
-              <h4 className="text-xs font-black text-slate-900">10초 만에 방 만들기</h4>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                로그인 없이 모임 이름과 후보 날짜를 지정합니다.
-              </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
+              <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center text-xs font-black">01</span>
+              <h4 className="text-xs font-black text-slate-900">10초 방 만들기</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">로그인 없이 방 제목과 날짜 방식을 지정합니다.</p>
             </div>
 
-            <div className="sys-card p-5 space-y-2 bg-white border-slate-200/80 shadow-sm">
-              <span className="w-7 h-7 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center text-xs font-black">02</span>
-              <h4 className="text-xs font-black text-slate-900">단톡방에 1초 공유</h4>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                카카오톡에 초대 링크를 공유하여 가능 날짜를 모읍니다.
-              </p>
+            <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
+              <span className="w-6 h-6 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center text-xs font-black">02</span>
+              <h4 className="text-xs font-black text-slate-900">1초 링크 공유</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">카카오톡 단톡방이나 메시지로 링크를 배포합니다.</p>
             </div>
 
-            <div className="sys-card p-5 space-y-2 bg-white border-slate-200/80 shadow-sm">
-              <span className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-100 flex items-center justify-center text-xs font-black">03</span>
-              <h4 className="text-xs font-black text-slate-900">황금 날짜 한눈에 확인</h4>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                전원 참석 가능한 TOP 1 날짜와 히트맵으로 확정합니다.
-              </p>
+            <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
+              <span className="w-6 h-6 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center text-xs font-black">03</span>
+              <h4 className="text-xs font-black text-slate-900">가능 날짜 투표</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">참여자가 본인 닉네임으로 5초 만에 응답합니다.</p>
+            </div>
+
+            <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
+              <span className="w-6 h-6 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-100 flex items-center justify-center text-xs font-black">04</span>
+              <h4 className="text-xs font-black text-slate-900">황금 날짜 자동 산정</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">전원 참석(100%) 또는 최다 가능 날짜를 찾습니다.</p>
+            </div>
+
+            <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
+              <span className="w-6 h-6 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-100 flex items-center justify-center text-xs font-black">05</span>
+              <h4 className="text-xs font-black text-slate-900">방장 날짜 확정</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">방장이 1위 황금 날짜 중 1개를 선택하여 확정합니다.</p>
+            </div>
+
+            <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
+              <span className="w-6 h-6 rounded-xl bg-indigo-50 text-indigo-800 border border-indigo-100 flex items-center justify-center text-xs font-black">06</span>
+              <h4 className="text-xs font-black text-slate-900">확정 결과 공유</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">확정 축하 카드와 결과를 단톡방에 재공유합니다.</p>
             </div>
           </div>
         </section>

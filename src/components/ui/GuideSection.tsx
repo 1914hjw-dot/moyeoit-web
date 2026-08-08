@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { BookOpen, ArrowRight, Calendar, Users, Compass, Share2, Sparkles } from 'lucide-react';
+import { BookOpen, ArrowRight, Calendar, Users, Compass, Share2, Sparkles, Globe } from 'lucide-react';
 
 export interface GuideArticleMeta {
   slug: string;
@@ -13,6 +13,15 @@ export interface GuideArticleMeta {
 }
 
 export const GUIDE_ARTICLES: GuideArticleMeta[] = [
+  {
+    slug: 'free-date-selection-guide',
+    title: '기간 지정 vs 자유 날짜 모드: 내 모임에 적합한 일정 조율 방식 찾기',
+    category: '날짜 선택 모드',
+    summary: '방장이 기간을 지정하는 모드와 후보 날짜 없이 자유롭게 투표하는 자유 날짜 모드의 비교 가이드.',
+    readTime: '3분 읽기',
+    date: '2026-08-08',
+    icon: Globe,
+  },
   {
     slug: 'fast-date-picker',
     title: '친구들과 약속 날짜 빠르게 정하는 5가지 실전 노하우',
