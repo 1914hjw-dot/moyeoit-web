@@ -53,22 +53,22 @@ export async function createRoom(input: CreateRoomInput): Promise<Room> {
     const shortSlug = generateShortSlug();
     const secretHash = generateHostSecret();
 
+    const insertPayload: Record<string, any> = {
+      id: secureId,
+      legacy_slug: shortSlug,
+      secret_hash: secretHash,
+      title: validated.title,
+      description: validated.description || '',
+      schedule_type: validated.schedule_type,
+      candidate_dates: validated.candidate_dates,
+      time_slots: validated.time_slots,
+      status: 'OPEN',
+      date_selection_mode: validated.date_selection_mode || 'RANGE',
+    };
+
     const { data, error } = await supabaseServer
       .from('rooms')
-      .insert({
-        id: secureId,
-        legacy_slug: shortSlug,
-        secret_hash: secretHash,
-        title: validated.title,
-        description: validated.description,
-        schedule_type: validated.schedule_type,
-        candidate_dates: validated.candidate_dates,
-        time_slots: validated.time_slots,
-        status: 'OPEN',
-        confirmed_date: null,
-        confirmed_at: null,
-        date_selection_mode: validated.date_selection_mode || 'RANGE',
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
