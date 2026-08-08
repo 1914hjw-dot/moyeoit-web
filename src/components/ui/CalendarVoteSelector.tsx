@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { AvailabilityStatus, HeatmapCellData, DateSelectionMode } from '@/types/schema';
-import { ChevronLeft, ChevronRight, CheckCheck, X, Calendar as CalendarIcon, Sparkles, Clock, Check, Globe } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCheck, X, Calendar as CalendarIcon, Sparkles, Clock, Check, Globe, RotateCcw } from 'lucide-react';
 import { formatKoreanDate } from '@/lib/analytics';
 
 interface CalendarVoteSelectorProps {
@@ -145,6 +145,28 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
     setTimeout(() => setFeedbackMsg(''), 2500);
   };
 
+  // Deselect All / Reset Action (Clears all selected date statuses for current active month)
+  const handleDeselectAll = () => {
+    if (readOnly) return;
+    const updated = { ...availability };
+    const datesToClear = isFreeMode
+      ? calendarDays.filter((c) => c.isCurrentMonth).map((c) => c.dateStr)
+      : candidateDates;
+
+    for (const d of datesToClear) {
+      if (isDateTimeMode) {
+        for (const slot of timeSlots) {
+          delete updated[`${d}_${slot}`];
+        }
+      } else {
+        delete updated[d];
+      }
+    }
+    onChangeAvailability(updated);
+    setFeedbackMsg('모든 날짜 선택이 취소되었습니다.');
+    setTimeout(() => setFeedbackMsg(''), 2500);
+  };
+
   // Toggle status for single key (date or date_slot)
   const handleToggleStatus = (key: string) => {
     if (readOnly) return;
@@ -219,12 +241,12 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
       {/* Quick Batch Control & Tip Bar */}
       {!readOnly && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">
             <span className="text-[11px] font-semibold text-slate-600 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-slate-700" />
+              <Sparkles className="w-3.5 h-3.5 text-slate-700 shrink-0" />
               <span>{isFreeMode ? '캘린더에서 가능한 날짜를 자유롭게 클릭하세요' : isDateTimeMode ? '날짜 클릭 후 가능 시간대를 선택하세요' : '안 되는 날짜만 눌러서 해제하세요'}</span>
             </span>
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0 flex-wrap w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => handleSetAll('possible')}
@@ -240,6 +262,14 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
               >
                 <X className="w-3 h-3" />
                 <span>당월 전체 해제</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleDeselectAll}
+                className="px-2.5 py-1 rounded-xl text-[11px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 hover:text-slate-900 cursor-pointer transition-all flex items-center gap-1 shadow-xs"
+              >
+                <RotateCcw className="w-3 h-3 text-slate-500" />
+                <span>모두 선택 취소</span>
               </button>
             </div>
           </div>
