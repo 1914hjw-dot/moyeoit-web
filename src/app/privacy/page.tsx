@@ -60,8 +60,8 @@ export default function PrivacyPage() {
               <li><strong>개인정보처리자:</strong> 모여잇 운영자 Jayden</li>
               <li>
                 <strong>개인정보 보호 관련 문의:</strong>{' '}
-                <a href="mailto:j6411863@gmail.com" className="text-indigo-600 underline font-bold">
-                  j6411863@gmail.com
+                <a href="mailto:j64118637@gmail.com" className="text-indigo-600 underline font-bold">
+                  j64118637@gmail.com
                 </a>
               </li>
             </ul>
@@ -289,8 +289,8 @@ export default function PrivacyPage() {
             </p>
             <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-slate-800">
               <strong>이메일:</strong>{' '}
-              <a href="mailto:j6411863@gmail.com" className="text-indigo-600 underline font-bold">
-                j6411863@gmail.com
+              <a href="mailto:j64118637@gmail.com" className="text-indigo-600 underline font-bold">
+                j64118637@gmail.com
               </a>
             </div>
             <p className="text-slate-600">
@@ -361,8 +361,8 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside space-y-1 pl-2 text-slate-700">
               <li>
                 <strong>이메일:</strong>{' '}
-                <a href="mailto:j6411863@gmail.com" className="text-indigo-600 underline font-bold">
-                  j6411863@gmail.com
+                <a href="mailto:j64118637@gmail.com" className="text-indigo-600 underline font-bold">
+                  j64118637@gmail.com
                 </a>
               </li>
             </ul>

@@ -55,10 +55,10 @@ export default function ContactPage() {
             </div>
             <div className="pt-2 border-t border-slate-200/60">
               <a
-                href="mailto:j6411863@gmail.com"
+                href="mailto:j64118637@gmail.com"
                 className="text-xs font-bold text-indigo-600 hover:underline break-all block"
               >
-                j6411863@gmail.com
+                j64118637@gmail.com
               </a>
             </div>
           </div>
@@ -76,10 +76,10 @@ export default function ContactPage() {
             </div>
             <div className="pt-2 border-t border-slate-200/60">
               <a
-                href="mailto:j6411863@gmail.com"
+                href="mailto:j64118637@gmail.com"
                 className="text-xs font-bold text-emerald-700 hover:underline break-all block"
               >
-                j6411863@gmail.com
+                j64118637@gmail.com
               </a>
             </div>
           </div>
@@ -97,10 +97,10 @@ export default function ContactPage() {
             </div>
             <div className="pt-2 border-t border-slate-200/60">
               <a
-                href="mailto:j6411863@gmail.com"
+                href="mailto:j64118637@gmail.com"
                 className="text-xs font-bold text-rose-600 hover:underline break-all block"
               >
-                j6411863@gmail.com
+                j64118637@gmail.com
               </a>
             </div>
           </div>

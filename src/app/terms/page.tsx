@@ -250,7 +250,7 @@ export default function TermsPage() {
               <p className="text-slate-700">② 모여잇은 무회원 서비스의 특성상 개별 이용자의 연락처를 보유하지 않을 수 있으므로, 서비스 내 공지를 통해 전체 이용자에게 통지할 수 있습니다.</p>
               <p className="text-slate-700">
                 ③ 서비스 이용 및 개인정보 보호와 관련한 문의는 다음 이메일로 할 수 있습니다. <br />
-                <strong>문의 이메일: <a href="mailto:j6411863@gmail.com" className="text-indigo-600 underline font-bold">j6411863@gmail.com</a></strong>
+                <strong>문의 이메일: <a href="mailto:j64118637@gmail.com" className="text-indigo-600 underline font-bold">j64118637@gmail.com</a></strong>
               </p>
             </section>
 
