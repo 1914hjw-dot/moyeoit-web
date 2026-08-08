@@ -1,4 +1,4 @@
-import { Room, Vote, CreateRoomInput, SubmitVoteInput } from '@/types/schema';
+import { Room, Vote, CreateRoomInput, SubmitVoteInput, ConfirmRoomInput } from '@/types/schema';
 import { hashPassword, sanitizeInput } from '@/lib/crypto';
 
 // Initial demo mock data
@@ -17,6 +17,10 @@ const INITIAL_ROOMS: Room[] = [
       '2026-07-31',
     ],
     time_slots: [],
+    status: 'OPEN',
+    confirmed_date: null,
+    confirmed_at: null,
+    date_selection_mode: 'RANGE',
     created_at: new Date().toISOString(),
   },
   {
@@ -26,6 +30,10 @@ const INITIAL_ROOMS: Room[] = [
     schedule_type: 'date_time',
     candidate_dates: ['2026-07-31', '2026-08-01', '2026-08-02'],
     time_slots: ['오전(10:00~14:00)', '오후(14:00~18:00)', '저녁(18:00~22:00)'],
+    status: 'OPEN',
+    confirmed_date: null,
+    confirmed_at: null,
+    date_selection_mode: 'RANGE',
     created_at: new Date().toISOString(),
   },
 ];
@@ -87,24 +95,20 @@ const INITIAL_VOTES: Vote[] = [
 const ROOMS_KEY = 'moyeoit_rooms_store';
 const VOTES_KEY = 'moyeoit_votes_store';
 
-// Rate Limiting & Anti-Bruteforce State Store
 const FAILED_ATTEMPTS: Record<string, { count: number; lastTime: number }> = {};
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_MS = 60000; // 1 min lock for 5 consecutive failures
+const LOCKOUT_MS = 60000;
 
 function checkRateLimit(key: string): void {
   const now = Date.now();
   const record = FAILED_ATTEMPTS[key];
-  if (record) {
-    if (record.count >= MAX_ATTEMPTS) {
-      const elapsed = now - record.lastTime;
-      if (elapsed < LOCKOUT_MS) {
-        const remainingSec = Math.ceil((LOCKOUT_MS - elapsed) / 1000);
-        throw new Error(`비밀번호 연속 실패로 제한되었습니다. ${remainingSec}초 후 다시 시도해 주세요.`);
-      } else {
-        // Reset after lockout period
-        FAILED_ATTEMPTS[key] = { count: 0, lastTime: now };
-      }
+  if (record && record.count >= MAX_ATTEMPTS) {
+    const elapsed = now - record.lastTime;
+    if (elapsed < LOCKOUT_MS) {
+      const remainingSec = Math.ceil((LOCKOUT_MS - elapsed) / 1000);
+      throw new Error(`비밀번호 연속 실패로 제한되었습니다. ${remainingSec}초 후 다시 시도해 주세요.`);
+    } else {
+      FAILED_ATTEMPTS[key] = { count: 0, lastTime: now };
     }
   }
 }
@@ -112,10 +116,7 @@ function checkRateLimit(key: string): void {
 function recordFailedAttempt(key: string): void {
   const now = Date.now();
   const record = FAILED_ATTEMPTS[key] || { count: 0, lastTime: now };
-  FAILED_ATTEMPTS[key] = {
-    count: record.count + 1,
-    lastTime: now,
-  };
+  FAILED_ATTEMPTS[key] = { count: record.count + 1, lastTime: now };
 }
 
 function clearFailedAttempt(key: string): void {
@@ -176,6 +177,10 @@ export function createRoomMock(input: CreateRoomInput): Room {
     schedule_type: input.schedule_type === 'date_time' ? 'date_time' : 'date_only',
     candidate_dates: (input.candidate_dates || []).slice(0, 31).map((d) => sanitizeInput(d, 20)),
     time_slots: (input.time_slots || []).slice(0, 10).map((s) => sanitizeInput(s, 50)),
+    status: 'OPEN',
+    confirmed_date: null,
+    confirmed_at: null,
+    date_selection_mode: input.date_selection_mode === 'FREE' ? 'FREE' : 'RANGE',
     created_at: new Date().toISOString(),
   };
 
@@ -187,18 +192,47 @@ export function createRoomMock(input: CreateRoomInput): Room {
 export function getRoomByIdMock(id: string): Room | null {
   const cleanId = sanitizeInput(id, 50);
   const rooms = getStoredRooms();
-  return rooms.find((r) => r.id === cleanId) || null;
+  const room = rooms.find((r) => r.id === cleanId || r.legacy_slug === cleanId);
+  if (!room) return null;
+  return {
+    ...room,
+    status: room.status || 'OPEN',
+    date_selection_mode: room.date_selection_mode || 'RANGE',
+  };
+}
+
+export function confirmRoomDateMock(input: ConfirmRoomInput): Room {
+  const cleanId = sanitizeInput(input.room_id, 50);
+  const cleanDate = sanitizeInput(input.confirmed_date, 50);
+
+  const rooms = getStoredRooms();
+  const roomIndex = rooms.findIndex((r) => r.id === cleanId || r.legacy_slug === cleanId);
+
+  if (roomIndex < 0) {
+    throw new Error('존재하지 않는 약속 방입니다.');
+  }
+
+  const room = rooms[roomIndex];
+  const updatedRoom: Room = {
+    ...room,
+    status: 'CONFIRMED',
+    confirmed_date: cleanDate,
+    confirmed_at: new Date().toISOString(),
+  };
+
+  rooms[roomIndex] = updatedRoom;
+  saveStoredRooms(rooms);
+  return updatedRoom;
 }
 
 export function getVotesByRoomIdMock(roomId: string): Vote[] {
   const cleanRoomId = sanitizeInput(roomId, 50);
   const votes = getStoredVotes();
-  // Strip password_hash from returning objects to prevent hash leaks!
   return votes
     .filter((v) => v.room_id === cleanRoomId)
     .map((v) => ({
       ...v,
-      password_hash: undefined, // Never expose password hash in response
+      password_hash: undefined,
     }));
 }
 
@@ -222,11 +256,8 @@ export async function submitVoteMock(input: SubmitVoteInput): Promise<Vote> {
 
   if (existingIndex >= 0) {
     const existing = votes[existingIndex];
-
-    // Check anti-bruteforce rate limit before checking password
     checkRateLimit(attemptKey);
 
-    // Strict IDOR & Password Authorization Check
     if (existing.password_hash) {
       if (!hashedInputPw || existing.password_hash !== hashedInputPw) {
         recordFailedAttempt(attemptKey);
@@ -246,7 +277,6 @@ export async function submitVoteMock(input: SubmitVoteInput): Promise<Vote> {
     votes[existingIndex] = updatedVote;
     saveStoredVotes(votes);
 
-    // Return safe sanitized vote without password hash
     return {
       ...updatedVote,
       password_hash: undefined,

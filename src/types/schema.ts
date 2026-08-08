@@ -2,6 +2,10 @@ export type ScheduleType = 'date_only' | 'date_time';
 
 export type AvailabilityStatus = 'possible' | 'impossible' | 'maybe';
 
+export type RoomStatus = 'OPEN' | 'CONFIRMED' | 'DELETED';
+
+export type DateSelectionMode = 'RANGE' | 'FREE';
+
 export interface Room {
   id: string; // UUID v4 for new rooms, legacy string for old rooms
   legacy_slug?: string | null; // Nullable legacy slug for backward compatibility
@@ -11,6 +15,10 @@ export interface Room {
   schedule_type: ScheduleType;
   candidate_dates: string[]; // Formatted YYYY-MM-DD
   time_slots: string[]; // e.g. ["오전", "오후", "저녁"] or ["12:00", "18:00"]
+  status: RoomStatus;
+  confirmed_date?: string | null;
+  confirmed_at?: string | null;
+  date_selection_mode: DateSelectionMode;
   created_at: string;
   deleted_at?: string | null;
 }
@@ -52,11 +60,21 @@ export interface GoldenDateRecommendation {
   possible_count: number;
   total_voters: number;
   match_percentage: number;
+  is_all_available: boolean; // True if possible_count === total_voters AND total_voters > 0
+  is_tie?: boolean; // True if multiple candidates share 1st place
   attendee_names: string[];
   absentee_list: {
     nickname: string;
     note?: string;
   }[];
+}
+
+export interface DecisionResult {
+  hasVoters: boolean;
+  totalVoters: number;
+  decisionType: 'ALL_AVAILABLE' | 'MAX_AVAILABLE' | 'NO_VOTES';
+  topCandidates: GoldenDateRecommendation[];
+  runnerUpCandidates: GoldenDateRecommendation[];
 }
 
 export interface CreateRoomInput {
@@ -65,6 +83,13 @@ export interface CreateRoomInput {
   schedule_type: ScheduleType;
   candidate_dates: string[];
   time_slots?: string[];
+  date_selection_mode?: DateSelectionMode;
+}
+
+export interface ConfirmRoomInput {
+  room_id: string;
+  confirmed_date: string;
+  host_secret?: string;
 }
 
 export interface SubmitVoteInput {
@@ -85,7 +110,7 @@ export interface DeleteVoteInput {
 
 export interface AuditLog {
   id: string;
-  event_type: 'ROOM_CREATED' | 'ROOM_DELETED' | 'VOTE_CREATED' | 'VOTE_UPDATED' | 'VOTE_DELETED';
+  event_type: 'ROOM_CREATED' | 'ROOM_CONFIRMED' | 'ROOM_DELETED' | 'VOTE_CREATED' | 'VOTE_UPDATED' | 'VOTE_DELETED';
   target_id: string;
   ip_address?: string;
   user_agent?: string;

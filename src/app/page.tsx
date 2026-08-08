@@ -6,7 +6,7 @@ import { CalendarSelector } from '@/components/ui/CalendarSelector';
 import { AdFitBanner } from '@/components/ads';
 import { HomeBelowTheFold } from '@/components/ui/HomeBelowTheFold';
 import { Footer } from '@/components/ui/Footer';
-import { ScheduleType } from '@/types/schema';
+import { ScheduleType, DateSelectionMode } from '@/types/schema';
 import { Sparkles, Calendar, ArrowRight } from 'lucide-react';
 
 export default function HomePage() {
@@ -14,6 +14,7 @@ export default function HomePage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [scheduleType, setScheduleType] = useState<ScheduleType>('date_only');
+  const [dateSelectionMode, setDateSelectionMode] = useState<DateSelectionMode>('RANGE');
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [timeSlots, setTimeSlots] = useState<string[]>([
     '오전 (10:00~14:00)',
@@ -44,6 +45,7 @@ export default function HomePage() {
           schedule_type: scheduleType,
           candidate_dates: selectedDates,
           time_slots: scheduleType === 'date_time' ? timeSlots : [],
+          date_selection_mode: dateSelectionMode,
         }),
       });
 
@@ -53,6 +55,9 @@ export default function HomePage() {
       }
 
       if (typeof window !== 'undefined') {
+        if (data.room.secret_hash) {
+          localStorage.setItem(`moyeoit_host_secret_${data.room.id}`, data.room.secret_hash);
+        }
         localStorage.setItem(`moyeoit_host_${data.room.id}`, 'true');
       }
 
@@ -165,6 +170,8 @@ export default function HomePage() {
                 onChangeScheduleType={setScheduleType}
                 timeSlots={timeSlots}
                 onChangeTimeSlots={setTimeSlots}
+                dateSelectionMode={dateSelectionMode}
+                onChangeDateSelectionMode={setDateSelectionMode}
               />
             </div>
 

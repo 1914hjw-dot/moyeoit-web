@@ -11,6 +11,8 @@ function applyUGCFilter(val: string, fieldName: string): string {
 
 export const ScheduleTypeSchema = z.enum(['date_only', 'date_time']);
 
+export const DateSelectionModeSchema = z.enum(['RANGE', 'FREE']);
+
 export const AvailabilityStatusSchema = z.enum(['possible', 'impossible', 'maybe']);
 
 export const CreateRoomInputSchema = z.object({
@@ -39,6 +41,17 @@ export const CreateRoomInputSchema = z.object({
     .max(10, { message: '시간대는 최대 10개까지 설정 가능합니다.' })
     .optional()
     .default([]),
+  date_selection_mode: DateSelectionModeSchema.default('RANGE'),
+});
+
+export const ConfirmRoomInputSchema = z.object({
+  room_id: z.string().trim().min(1, { message: '올바른 방 번호가 필요합니다.' }),
+  confirmed_date: z
+    .string()
+    .trim()
+    .min(1, { message: '확정할 날짜를 선택해 주세요.' })
+    .transform((val) => applyUGCFilter(val, '확정 날짜')),
+  host_secret: z.string().trim().optional(),
 });
 
 export const SubmitVoteInputSchema = z.object({
@@ -79,5 +92,6 @@ export const DeleteVoteInputSchema = z.object({
 });
 
 export type CreateRoomInputZod = z.infer<typeof CreateRoomInputSchema>;
+export type ConfirmRoomInputZod = z.infer<typeof ConfirmRoomInputSchema>;
 export type SubmitVoteInputZod = z.infer<typeof SubmitVoteInputSchema>;
 export type DeleteVoteInputZod = z.infer<typeof DeleteVoteInputSchema>;

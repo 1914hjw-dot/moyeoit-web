@@ -2,25 +2,29 @@
 
 import React from 'react';
 import { Crown, Sparkles, CheckCircle2, AlertCircle, ThumbsUp, ShieldCheck, Users, Share2, Info } from 'lucide-react';
-import { GoldenDateRecommendation } from '@/types/schema';
-import { formatKoreanDate } from '@/lib/analytics';
+import { GoldenDateRecommendation, HeatmapCellData } from '@/types/schema';
+import { evaluateDecision, formatKoreanDate } from '@/lib/analytics';
 
 interface GoldenDateCardProps {
-  recommendations: GoldenDateRecommendation[];
-  onConfirmDate?: (date: string, timeSlot?: string) => void;
+  heatmapData: Record<string, HeatmapCellData>;
+  totalVoters: number;
+  onConfirmDate?: (dateKey: string) => void;
   onShare?: () => void;
   selectedConfirmedKey?: string;
   isHost?: boolean;
 }
 
 export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
-  recommendations,
+  heatmapData,
+  totalVoters,
   onConfirmDate,
   onShare,
   selectedConfirmedKey,
   isHost = false,
 }) => {
-  if (recommendations.length === 0) {
+  const decision = evaluateDecision(heatmapData, totalVoters);
+
+  if (!decision.hasVoters || decision.topCandidates.length === 0) {
     return (
       <div className="w-full sys-card p-6 text-center space-y-3 border-dashed border-slate-200 my-4 bg-white">
         <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center mx-auto shadow-sm">
@@ -29,7 +33,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
         <div className="space-y-1">
           <h4 className="text-sm font-extrabold text-slate-900">아직 다른 참여자의 응답이 없어요</h4>
           <p className="text-xs text-slate-500">
-            친구들에게 링크를 공유하면 가장 많은 인원이 가능한 최적의 날짜를 찾아드려요!
+            친구들에게 링크를 공유하면 전원 참석 가능한 황금 날짜를 10초 만에 찾아드려요!
           </p>
         </div>
         {onShare && (
@@ -46,8 +50,9 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
     );
   }
 
-  const top1 = recommendations[0];
-  const runnerUps = recommendations.slice(1);
+  const { decisionType, topCandidates, runnerUpCandidates } = decision;
+  const isAllAvailable = decisionType === 'ALL_AVAILABLE';
+  const isTie = topCandidates.length > 1;
 
   // Dynamic import of canvas-confetti
   const triggerConfetti = async () => {
@@ -65,9 +70,6 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
     }
   };
 
-  const isTop1Confirmed = selectedConfirmedKey === top1.key;
-
-  // Format attendee names nicely (e.g. "민수 · 지현 · 수진" or "민수 · 지현 외 3명")
   const formatAttendeeNames = (names: string[]): string => {
     if (names.length === 0) return '가능 인원 없음';
     if (names.length <= 3) return names.join(' · ');
@@ -76,136 +78,139 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
 
   return (
     <div className="w-full space-y-4 my-4">
+      {/* Header Banner */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Crown className="w-4 h-4 text-emerald-600 fill-emerald-600" />
           <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
-            현재 가장 추천하는 날짜
+            {isAllAvailable ? '🎉 전원 참석 가능한 황금 날짜' : '🥇 가장 많은 사람이 가능한 날짜'}
           </h3>
         </div>
         <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-          자동 계산됨
+          {isAllAvailable ? '100% 참석 가능' : '최다 참석 추천'}
         </span>
       </div>
 
-      {/* TOP 1 Focused Primary Decision Card - Clean Sage Mint */}
-      <div
-        className={`relative rounded-3xl p-6 transition-all ${
-          isTop1Confirmed
-            ? 'bg-emerald-50/80 border-2 border-emerald-500 shadow-lg shadow-emerald-500/10'
-            : 'bg-emerald-50/50 border-2 border-emerald-200/90 shadow-md shadow-emerald-500/5'
-        }`}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <span className="px-3 py-0.5 rounded-full text-xs font-black bg-emerald-600 text-white uppercase tracking-wider shadow-sm">
-            1위 최적 날짜
-          </span>
-          <span className="text-xs font-extrabold text-emerald-700 flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            {top1.match_percentage}% 참석 ({top1.possible_count}/{top1.total_voters}명)
-          </span>
-        </div>
+      {/* Top 1st Place Candidates (Handles Equal Ties!) */}
+      <div className="space-y-3">
+        {topCandidates.map((cand) => {
+          const isConfirmed = selectedConfirmedKey === cand.key;
+          const displayDate = cand.time_slot ? `${formatKoreanDate(cand.date)} [${cand.time_slot}]` : formatKoreanDate(cand.date);
 
-        <div className="my-3">
-          <h4 className="text-xl sm:text-2xl font-black text-slate-900">
-            {formatKoreanDate(top1.date)}
-          </h4>
-          {top1.time_slot && (
-            <span className="text-xs font-bold text-slate-700 bg-white px-2.5 py-0.5 rounded-lg border border-slate-200 inline-block mt-1">
-              [{top1.time_slot}]
-            </span>
-          )}
-        </div>
+          return (
+            <div
+              key={cand.key}
+              className={`relative rounded-3xl p-6 transition-all ${
+                isConfirmed
+                  ? 'bg-emerald-50/90 border-2 border-emerald-500 shadow-lg shadow-emerald-500/10'
+                  : 'bg-emerald-50/50 border-2 border-emerald-200/90 shadow-md shadow-emerald-500/5'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="px-3 py-0.5 rounded-full text-xs font-black bg-emerald-600 text-white uppercase tracking-wider shadow-sm">
+                  {isAllAvailable ? '전원 가능 (100%)' : isTie ? '공동 1위 추천' : '1위 최적 날짜'}
+                </span>
+                <span className="text-xs font-extrabold text-emerald-700 flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  {cand.possible_count}명 /전체 {cand.total_voters}명 가능
+                </span>
+              </div>
 
-        {/* Attendee Names Breakdown */}
-        <div className="p-3.5 rounded-2xl bg-white/90 border border-slate-200/80 space-y-1.5 text-xs mb-4 shadow-xs">
-          <div className="flex items-start gap-1.5 text-emerald-700">
-            <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-600" />
-            <span className="font-bold text-slate-800">
-              가능: {formatAttendeeNames(top1.attendee_names)}
-            </span>
-          </div>
+              <div className="my-3">
+                <h4 className="text-xl sm:text-2xl font-black text-slate-900">
+                  {displayDate}
+                </h4>
+              </div>
 
-          {top1.absentee_list.length > 0 && (
-            <div className="flex items-start gap-1.5 text-rose-600">
-              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-rose-500" />
-              <span className="font-semibold text-slate-500">
-                불참: {top1.absentee_list.map((a) => a.nickname).slice(0, 3).join(' · ')}
-                {top1.absentee_list.length > 3 ? ` 외 ${top1.absentee_list.length - 3}명` : ''}
-              </span>
+              {/* Attendee Names Breakdown */}
+              <div className="p-3.5 rounded-2xl bg-white/90 border border-slate-200/80 space-y-1.5 text-xs mb-4 shadow-xs">
+                <div className="flex items-start gap-1.5 text-emerald-700">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-600" />
+                  <span className="font-bold text-slate-800">
+                    참석 가능 ({cand.possible_count}명): {formatAttendeeNames(cand.attendee_names)}
+                  </span>
+                </div>
+
+                {cand.absentee_list.length > 0 && (
+                  <div className="flex items-start gap-1.5 text-rose-600">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-rose-500" />
+                    <span className="font-semibold text-slate-500">
+                      불참/미정: {cand.absentee_list.map((a) => a.nickname).slice(0, 3).join(' · ')}
+                      {cand.absentee_list.length > 3 ? ` 외 ${cand.absentee_list.length - 3}명` : ''}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Role-based Host Confirm Action Button */}
+              {isHost && onConfirmDate ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerConfetti();
+                    onConfirmDate(cand.key);
+                  }}
+                  className={`w-full py-3.5 rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
+                    isConfirmed
+                      ? 'bg-emerald-600 text-white shadow-emerald-600/20'
+                      : 'sys-btn-primary'
+                  }`}
+                >
+                  <ThumbsUp className="w-4 h-4 text-white" />
+                  <span>{isConfirmed ? '이 날짜로 약속 확정 완료' : `방장: ${displayDate}(으)로 모임 확정하기`}</span>
+                </button>
+              ) : isConfirmed ? (
+                <div className="w-full py-3.5 rounded-2xl text-xs font-black bg-emerald-600 text-white flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20">
+                  <ShieldCheck className="w-4 h-4 text-white" />
+                  <span>방장에 의해 이 날짜로 모임이 확정되었습니다.</span>
+                </div>
+              ) : null}
             </div>
-          )}
-        </div>
-
-        {/* Role-based Action Button */}
-        {isHost && onConfirmDate ? (
-          <button
-            type="button"
-            onClick={() => {
-              triggerConfetti();
-              onConfirmDate(top1.date, top1.time_slot);
-            }}
-            className={`w-full py-3.5 rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
-              isTop1Confirmed
-                ? 'bg-emerald-600 text-white shadow-emerald-600/20'
-                : 'sys-btn-primary'
-            }`}
-          >
-            <ThumbsUp className="w-4 h-4 text-white" />
-            <span>{isTop1Confirmed ? '이 날짜로 약속 확정 완료' : '방장: 이 날짜로 모임 확정하기'}</span>
-          </button>
-        ) : isTop1Confirmed ? (
-          <div className="w-full py-3.5 rounded-2xl text-xs font-black bg-emerald-600 text-white flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20">
-            <ShieldCheck className="w-4 h-4 text-white" />
-            <span>방장에 의해 이 날짜로 모임이 확정되었습니다.</span>
-          </div>
-        ) : null}
+          );
+        })}
       </div>
 
-      {/* TOP 2 & TOP 3 Runner-up Compact Rows */}
-      {runnerUps.length > 0 && (
-        <div className="space-y-2">
-          {runnerUps.map((rec) => {
-            const isConfirmed = selectedConfirmedKey === rec.key;
+      {/* Runner Up Candidates (2nd & 3rd place) */}
+      {runnerUpCandidates.length > 0 && (
+        <div className="space-y-2 pt-1">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">차선책 추천 날짜</p>
+          {runnerUpCandidates.map((cand) => {
+            const isConfirmed = selectedConfirmedKey === cand.key;
+            const displayDate = cand.time_slot ? `${formatKoreanDate(cand.date)} [${cand.time_slot}]` : formatKoreanDate(cand.date);
 
             return (
               <div
-                key={rec.key}
+                key={cand.key}
                 className="p-3.5 rounded-2xl bg-white border border-slate-200/80 flex items-center justify-between gap-3 text-xs shadow-sm"
               >
                 <div className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-black text-xs">
-                    {rec.rank}위
+                    {cand.rank}위
                   </span>
                   <div>
-                    <span className="font-extrabold text-slate-900">
-                      {formatKoreanDate(rec.date)}
-                    </span>
-                    {rec.time_slot && (
-                      <span className="text-[11px] text-slate-600 font-bold ml-1.5">[{rec.time_slot}]</span>
-                    )}
+                    <span className="font-extrabold text-slate-900">{displayDate}</span>
                     <p className="text-[11px] text-slate-500 mt-0.5">
-                      가능: {formatAttendeeNames(rec.attendee_names)}
+                      가능: {formatAttendeeNames(cand.attendee_names)}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-slate-500 font-semibold text-[11px]">
-                    <strong className="text-emerald-600 font-extrabold">{rec.possible_count}명</strong> / {rec.total_voters}명
+                    <strong className="text-emerald-600 font-extrabold">{cand.possible_count}명</strong> / {cand.total_voters}명
                   </span>
 
                   {isHost && onConfirmDate && (
                     <button
                       type="button"
-                      onClick={() => onConfirmDate(rec.date, rec.time_slot)}
+                      onClick={() => onConfirmDate(cand.key)}
                       className={`px-3 py-1 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer ${
                         isConfirmed
                           ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
-                      {isConfirmed ? '확정됨' : '선택'}
+                      {isConfirmed ? '확정됨' : '확정하기'}
                     </button>
                   )}
                 </div>
@@ -215,12 +220,12 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
         </div>
       )}
 
-      {/* System Tie-Breaker Explanation Badge */}
+      {/* System Rule Info */}
       <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-2 text-[11px] text-slate-600 leading-relaxed shadow-sm">
         <Info className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
         <div>
-          <strong className="font-extrabold text-slate-900">순위 산정 시스템 안내:</strong>
-          <span> 가능 참석 인원수가 동일할 경우, <strong>가장 빠른 날짜순</strong>으로 최적 순위(1위, 2위, 3위)가 자동 지정됩니다.</span>
+          <strong className="font-extrabold text-slate-900">추천 판정 규칙:</strong>
+          <span> 전원 참석 가능한 날짜(`100%`)가 존재하면 최우선 추천되며, 동률인 경우 모든 1위 후보를 공동 추천하여 방장이 자유롭게 선택할 수 있습니다.</span>
         </div>
       </div>
     </div>

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Zap, Check, Trash2, Clock } from 'lucide-react';
-import { ScheduleType } from '@/types/schema';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Zap, Check, Trash2, Clock, Globe } from 'lucide-react';
+import { ScheduleType, DateSelectionMode } from '@/types/schema';
 
 interface CalendarSelectorProps {
   selectedDates: string[];
@@ -11,6 +11,8 @@ interface CalendarSelectorProps {
   onChangeScheduleType: (type: ScheduleType) => void;
   timeSlots: string[];
   onChangeTimeSlots: (slots: string[]) => void;
+  dateSelectionMode?: DateSelectionMode;
+  onChangeDateSelectionMode?: (mode: DateSelectionMode) => void;
 }
 
 export const CalendarSelector: React.FC<CalendarSelectorProps> = ({
@@ -20,6 +22,8 @@ export const CalendarSelector: React.FC<CalendarSelectorProps> = ({
   onChangeScheduleType,
   timeSlots,
   onChangeTimeSlots,
+  dateSelectionMode = 'RANGE',
+  onChangeDateSelectionMode,
 }) => {
   const [currentMonthDate, setCurrentMonthDate] = useState(() => {
     const now = new Date();
@@ -75,10 +79,46 @@ export const CalendarSelector: React.FC<CalendarSelectorProps> = ({
 
   return (
     <div className="w-full sys-card p-4 sm:p-6 space-y-5 bg-white border-slate-200/80 shadow-sm">
+      {/* Date Selection Mode Tabs (RANGE vs FREE) */}
+      {onChangeDateSelectionMode && (
+        <div>
+          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
+            날짜 선택 모드
+          </label>
+          <div className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-slate-100/80 border border-slate-200/60">
+            <button
+              type="button"
+              onClick={() => onChangeDateSelectionMode('RANGE')}
+              className={`h-11 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                dateSelectionMode === 'RANGE'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <CalendarIcon className="w-4 h-4 text-indigo-600" />
+              <span>기간 지정 모드</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onChangeDateSelectionMode('FREE')}
+              className={`h-11 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                dateSelectionMode === 'FREE'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Globe className="w-4 h-4 text-emerald-600" />
+              <span>자유 날짜 모드</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Schedule Mode Segment Control */}
       <div>
         <label id="schedule-mode-label" className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
-          조율 방식
+          조율 세부 방식
         </label>
         <div role="group" aria-labelledby="schedule-mode-label" className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-slate-100/80 border border-slate-200/60">
           <button

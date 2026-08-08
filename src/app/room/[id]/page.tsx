@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Room, Vote, SubmitVoteInput } from '@/types/schema';
-import { computeHeatmapData, extractGoldenDates } from '@/lib/analytics';
+import { computeHeatmapData } from '@/lib/analytics';
 import { GoldenDateCard } from '@/components/ui/GoldenDateCard';
+import { ConfirmedResultCard } from '@/components/ui/RoomDetail/ConfirmedResultCard';
+import { MultiShareButton } from '@/components/ui/MultiShareButton';
 import { HeatmapGrid } from '@/components/ui/HeatmapGrid';
 import { GuestVoteForm } from '@/components/ui/GuestVoteForm';
 import { ShareSheet } from '@/components/ui/ShareSheet';
@@ -15,7 +17,7 @@ import {
   OfflineState,
   InvalidLinkState,
 } from '@/components/ui/StateViews';
-import { Share2, Vote as VoteIcon, ArrowLeft, Check, Edit3, Users, Crown, Trash2, AlertTriangle, X, Calendar } from 'lucide-react';
+import { Share2, Vote as VoteIcon, ArrowLeft, Check, Edit3, Users, Crown, Trash2, AlertTriangle, X, PartyPopper } from 'lucide-react';
 
 export default function RoomDetailPage() {
   const params = useParams();
@@ -41,7 +43,8 @@ export default function RoomDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteErrorMsg, setDeleteErrorMsg] = useState('');
 
-  const [confirmedKey, setConfirmedKey] = useState<string | undefined>(undefined);
+  // Confirmation state
+  const [isConfirming, setIsConfirming] = useState(false);
 
   // Network offline listener
   useEffect(() => {
@@ -112,10 +115,11 @@ export default function RoomDetailPage() {
   if (loading) return <LoadingState message="약속 정보를 불러오는 중입니다..." />;
   if (!room) return <InvalidLinkState />;
 
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://moyeoit-web.vercel.app/room/${room.id}`;
   const heatmapMap = computeHeatmapData(room, votes);
   const totalVotersCount = votes.length;
-  const goldenRecommendations = extractGoldenDates(heatmapMap, totalVotersCount);
   const isVoted = Boolean(myVote);
+  const isConfirmed = room.status === 'CONFIRMED';
 
   const handleSubmitVote = async (input: SubmitVoteInput) => {
     const res = await fetch(`/api/rooms/${roomId}/votes`, {
@@ -174,9 +178,36 @@ export default function RoomDetailPage() {
     }
   };
 
-  const handleConfirmDate = (date: string, timeSlot?: string) => {
-    const key = timeSlot ? `${date}_${timeSlot}` : date;
-    setConfirmedKey(key);
+  const handleConfirmDate = async (dateKey: string) => {
+    if (!isHost) {
+      alert('이 약속 방을 생성한 방장 브라우저에서만 확정할 수 있습니다.');
+      return;
+    }
+
+    const hostSecret = typeof window !== 'undefined' ? localStorage.getItem(`moyeoit_host_secret_${room.id}`) || undefined : undefined;
+
+    setIsConfirming(true);
+    try {
+      const res = await fetch(`/api/rooms/${room.id}/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          confirmed_date: dateKey,
+          host_secret: hostSecret,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || '날짜 확정에 실패했습니다.');
+      }
+
+      await loadRoomData();
+    } catch (err: any) {
+      alert(err.message || '날짜 확정에 실패했습니다.');
+    } finally {
+      setIsConfirming(false);
+    }
   };
 
   const displayTitle = room.title && room.title.trim().length > 0 && isNaN(Number(room.title.trim()))
@@ -197,49 +228,55 @@ export default function RoomDetailPage() {
             <span>홈으로</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setShowShareSheet(true)}
-            className="px-3.5 py-1.5 rounded-2xl text-xs font-extrabold bg-slate-900 text-white hover:bg-slate-800 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            <span>초대 링크 공유</span>
-          </button>
+          <MultiShareButton
+            title={room.title}
+            url={shareUrl}
+            confirmedDate={isConfirmed && room.confirmed_date ? room.confirmed_date : undefined}
+            className="px-3.5 py-1.5 rounded-2xl text-xs font-extrabold"
+          />
         </header>
 
-        {/* SECTION 1: 모임 정보 */}
-        <section className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-              <span>STEP 1 · 모임 정보</span>
-            </span>
-          </div>
-
-          <div className="sys-card p-5 sm:p-6 space-y-2 border-slate-200/80 shadow-sm bg-white rounded-3xl">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
-                  {room.schedule_type === 'date_time' ? '날짜 + 시간대' : '날짜 전용'}
-                </span>
-                {isHost && (
-                  <span className="text-[10px] font-bold text-slate-800 bg-slate-100 border border-slate-200 px-2 rounded-full flex items-center gap-0.5">
-                    <Crown className="w-3 h-3 text-slate-700 fill-slate-700" />
-                    <span>방장</span>
-                  </span>
-                )}
-              </div>
-
-              <span className="text-xs text-slate-500 font-semibold flex items-center gap-1">
-                <Users className="w-3.5 h-3.5 text-emerald-600" />
-                <span>참여자 <strong className="text-emerald-600 font-extrabold">{totalVotersCount}명</strong></span>
+        {/* CONFIRMED CELEBRATION HEADER (If confirmed) */}
+        {isConfirmed ? (
+          <ConfirmedResultCard room={room} votes={votes} shareUrl={shareUrl} />
+        ) : (
+          /* SECTION 1: 모임 정보 (OPEN 상태일 때) */
+          <section className="space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                <span>STEP 1 · 모임 정보</span>
               </span>
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-snug">{displayTitle}</h1>
-            {room.description && <p className="text-xs text-slate-500">{room.description}</p>}
-          </div>
-        </section>
+            <div className="sys-card p-5 sm:p-6 space-y-2 border-slate-200/80 shadow-sm bg-white rounded-3xl">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                    {room.schedule_type === 'date_time' ? '날짜 + 시간대' : '날짜 전용'}
+                  </span>
+                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
+                    {room.date_selection_mode === 'FREE' ? '자유 날짜 모드' : '기간 지정 모드'}
+                  </span>
+                  {isHost && (
+                    <span className="text-[10px] font-bold text-slate-800 bg-slate-100 border border-slate-200 px-2 rounded-full flex items-center gap-0.5">
+                      <Crown className="w-3 h-3 text-slate-700 fill-slate-700" />
+                      <span>방장</span>
+                    </span>
+                  )}
+                </div>
+
+                <span className="text-xs text-slate-500 font-semibold flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>참여자 <strong className="text-emerald-600 font-extrabold">{totalVotersCount}명</strong></span>
+                </span>
+              </div>
+
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-snug">{displayTitle}</h1>
+              {room.description && <p className="text-xs text-slate-500">{room.description}</p>}
+            </div>
+          </section>
+        )}
 
         {/* SECTION 2: 내 가능 날짜 투표 */}
         <section className="space-y-2">
@@ -267,14 +304,12 @@ export default function RoomDetailPage() {
               </div>
 
               <div className="flex items-center gap-2 pt-2 border-t border-emerald-100 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setShowShareSheet(true)}
-                  className="flex-1 py-2.5 rounded-2xl bg-slate-900 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer hover:bg-slate-800 transition-all"
-                >
-                  <Share2 className="w-3.5 h-3.5 fill-white" />
-                  <span>초대 링크 공유하기</span>
-                </button>
+                <MultiShareButton
+                  title={room.title}
+                  url={shareUrl}
+                  confirmedDate={isConfirmed && room.confirmed_date ? room.confirmed_date : undefined}
+                  className="flex-1 py-2.5"
+                />
 
                 <button
                   type="button"
@@ -317,10 +352,11 @@ export default function RoomDetailPage() {
           </div>
 
           <GoldenDateCard
-            recommendations={goldenRecommendations}
+            heatmapData={heatmapMap}
+            totalVoters={totalVotersCount}
             onConfirmDate={handleConfirmDate}
             onShare={() => setShowShareSheet(true)}
-            selectedConfirmedKey={confirmedKey}
+            selectedConfirmedKey={room.confirmed_date || undefined}
             isHost={isHost}
           />
         </section>
@@ -450,14 +486,12 @@ export default function RoomDetailPage() {
               <span>내 가능 날짜 선택하기</span>
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={() => setShowShareSheet(true)}
-              className="w-full h-11 rounded-xl bg-slate-900 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer hover:bg-slate-800 transition-all"
-            >
-              <Share2 className="w-4 h-4 fill-white" />
-              <span>초대 링크 공유하기</span>
-            </button>
+            <MultiShareButton
+              title={room.title}
+              url={shareUrl}
+              confirmedDate={isConfirmed && room.confirmed_date ? room.confirmed_date : undefined}
+              className="w-full h-11"
+            />
           )}
         </div>
       </div>
