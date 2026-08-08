@@ -22,6 +22,11 @@ function generateSecureUUID(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+// Generate branded short public identifier slug for user-facing URLs (e.g., moyeoit-x89ab3f)
+function generateShortSlug(): string {
+  return `moyeoit-${Math.random().toString(36).substring(2, 9)}`;
+}
+
 // Generate 32-byte Random Secret Hex Token for Host Administration
 function generateHostSecret(): string {
   const bytes = new Uint8Array(32);
@@ -56,13 +61,14 @@ export async function createRoom(input: CreateRoomInput): Promise<Room> {
 
   if (isSupabaseConfigured && supabaseServer) {
     const secureId = generateSecureUUID();
+    const shortSlug = generateShortSlug();
     const secretHash = generateHostSecret();
 
     const { data, error } = await supabaseServer
       .from('rooms')
       .insert({
         id: secureId,
-        legacy_slug: null, // New rooms do not use legacy slugs
+        legacy_slug: shortSlug,
         secret_hash: secretHash,
         title: validated.title,
         description: validated.description,
@@ -87,6 +93,7 @@ export async function createRoom(input: CreateRoomInput): Promise<Room> {
 
     return {
       id: data.id,
+      legacy_slug: data.legacy_slug || shortSlug,
       secret_hash: secretHash,
       title: data.title,
       description: data.description,

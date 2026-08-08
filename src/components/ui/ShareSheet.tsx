@@ -12,7 +12,8 @@ interface ShareSheetProps {
 export const ShareSheet: React.FC<ShareSheetProps> = ({ room, onClose }) => {
   const [copied, setCopied] = useState(false);
 
-  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/room/${room.id}` : '';
+  const shareUrlId = room.legacy_slug || room.id;
+  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/room/${shareUrlId}` : '';
 
   const handleCopyLink = async () => {
     try {

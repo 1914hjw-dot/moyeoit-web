@@ -81,11 +81,19 @@ export default function RoomDetailPage() {
         setVotes(voteList);
 
         // Check if user is host
-        const isHostStored = typeof window !== 'undefined' ? localStorage.getItem(`moyeoit_host_${roomId}`) === 'true' : false;
+        const isHostStored = typeof window !== 'undefined'
+          ? (localStorage.getItem(`moyeoit_host_${roomId}`) === 'true' ||
+             (roomData.room?.id && localStorage.getItem(`moyeoit_host_${roomData.room.id}`) === 'true') ||
+             (roomData.room?.legacy_slug && localStorage.getItem(`moyeoit_host_${roomData.room.legacy_slug}`) === 'true'))
+          : false;
         setIsHost(isHostStored);
 
         // Check if user has previously voted stored in local storage nickname key
-        const savedNickname = typeof window !== 'undefined' ? localStorage.getItem(`moyeoit_voted_${roomId}`) : null;
+        const savedNickname = typeof window !== 'undefined'
+          ? (localStorage.getItem(`moyeoit_voted_${roomId}`) ||
+             (roomData.room?.id && localStorage.getItem(`moyeoit_voted_${roomData.room.id}`)) ||
+             (roomData.room?.legacy_slug && localStorage.getItem(`moyeoit_voted_${roomData.room.legacy_slug}`)))
+          : null;
         if (savedNickname && voteList.length > 0) {
           const found = voteList.find((v: Vote) => v.nickname.toLowerCase() === savedNickname.toLowerCase());
           if (found) {
@@ -115,7 +123,10 @@ export default function RoomDetailPage() {
   if (loading) return <LoadingState message="약속 정보를 불러오는 중입니다..." />;
   if (!room) return <InvalidLinkState />;
 
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : `https://moyeoit-web.vercel.app/room/${room.id}`;
+  const shareUrlId = room.legacy_slug || room.id;
+  const shareUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/room/${shareUrlId}`
+    : `https://moyeoit-web.vercel.app/room/${shareUrlId}`;
   const heatmapMap = computeHeatmapData(room, votes);
   const totalVotersCount = votes.length;
   const isVoted = Boolean(myVote);

@@ -57,14 +57,22 @@ export default function HomePage() {
         throw new Error(data.error || '방 생성에 실패했습니다. 다시 시도해 주세요.');
       }
 
+      const publicUrlId = data.room.legacy_slug || data.room.id;
+
       if (typeof window !== 'undefined') {
         if (data.room.secret_hash) {
           localStorage.setItem(`moyeoit_host_secret_${data.room.id}`, data.room.secret_hash);
+          if (data.room.legacy_slug) {
+            localStorage.setItem(`moyeoit_host_secret_${data.room.legacy_slug}`, data.room.secret_hash);
+          }
         }
         localStorage.setItem(`moyeoit_host_${data.room.id}`, 'true');
+        if (data.room.legacy_slug) {
+          localStorage.setItem(`moyeoit_host_${data.room.legacy_slug}`, 'true');
+        }
       }
 
-      router.push(`/room/${data.room.id}`);
+      router.push(`/room/${publicUrlId}`);
     } catch (err: any) {
       console.error(err);
       alert(err.message || '방 생성에 실패했습니다. 다시 시도해 주세요.');
