@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleCleanup(req: NextRequest) {
-  // 1. Optional Secret Key Authorization for Protected Execution
+  // 1. Secret Key Authorization for Protected Execution
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret) {
     const authHeader = req.headers.get('authorization') || '';
@@ -28,40 +28,52 @@ async function handleCleanup(req: NextRequest) {
     }
   }
 
-  // 2. Database Cleanup Query Execution (ON DELETE CASCADE purges associated votes automatically)
+  // 2. Database Cleanup Query Execution
   if (!isSupabaseConfigured || !supabaseServer) {
     return NextResponse.json({
       success: true,
       message: 'Supabase is not configured in this environment.',
-      deleted_rooms_count: 0,
+      deleted_records_count: 0,
     });
   }
 
   try {
     const nowIso = new Date().toISOString();
 
-    const { data, error } = await supabaseServer
-      .from('rooms')
-      .delete()
-      .not('expires_at', 'is', null)
-      .lt('expires_at', nowIso)
-      .select('id');
+    // Call stored procedure purge_expired_records() for 90-day retention cleanup
+    const { error: rpcError } = await supabaseServer.rpc('purge_expired_records');
 
-    if (error) {
-      console.error('90-day Auto-cleanup failed:', error.message);
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 }
-      );
+    if (rpcError) {
+      console.warn('RPC purge_expired_records warning:', rpcError.message);
     }
 
-    const deletedCount = data ? data.length : 0;
+    // Direct fallback cleanup for soft-deleted or 90-day expired items
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: deletedVotes, error: voteError } = await supabaseServer
+      .from('votes')
+      .delete()
+      .or(`deleted_at.lt.${ninetyDaysAgo},created_at.lt.${ninetyDaysAgo}`)
+      .select('id');
+
+    const { data: deletedRooms, error: roomError } = await supabaseServer
+      .from('rooms')
+      .delete()
+      .or(`deleted_at.lt.${ninetyDaysAgo},created_at.lt.${ninetyDaysAgo}`)
+      .select('id');
+
+    if (voteError || roomError) {
+      console.error('90-day Auto-cleanup failed:', voteError?.message || roomError?.message);
+    }
+
+    const totalRoomsPurged = deletedRooms ? deletedRooms.length : 0;
+    const totalVotesPurged = deletedVotes ? deletedVotes.length : 0;
 
     return NextResponse.json({
       success: true,
-      message: `Expired rooms cleanup completed successfully.`,
-      deleted_rooms_count: deletedCount,
-      deleted_room_ids: data ? data.map((r) => r.id) : [],
+      message: `Expired records 90-day retention cleanup completed successfully.`,
+      purged_rooms_count: totalRoomsPurged,
+      purged_votes_count: totalVotesPurged,
       executed_at: nowIso,
     });
   } catch (error: any) {
