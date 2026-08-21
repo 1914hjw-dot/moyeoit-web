@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Share2, Copy, Check, MessageCircle, Sparkles, Send, Users } from 'lucide-react';
 import { Room } from '@/types/schema';
+import { trackRoomShare } from '@/lib/gtag';
 
 interface ShareModalProps {
   room: Room;
@@ -19,6 +20,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ room, onClose }) => {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
+      trackRoomShare('clipboard');
     } catch {
       setCopied(true);
     }
@@ -32,6 +34,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ room, onClose }) => {
           text: `[모여잇] ${room.title} 모임 날짜 조율 투표에 참여해 주세요! (로그인 0초, 10초 만에 완료)`,
           url: shareUrl,
         })
+        .then(() => trackRoomShare('web_share'))
         .catch(() => {});
     } else {
       handleCopyLink();

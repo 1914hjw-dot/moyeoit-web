@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Room, Vote, SubmitVoteInput } from '@/types/schema';
 import { computeHeatmapData } from '@/lib/analytics';
+import { trackRoomJoin, trackVoteSubmit, trackRoomConfirmed } from '@/lib/gtag';
 import { GoldenDateCard } from '@/components/ui/GoldenDateCard';
 import { ConfirmedResultCard } from '@/components/ui/RoomDetail/ConfirmedResultCard';
 import { MultiShareButton } from '@/components/ui/MultiShareButton';
@@ -23,6 +24,7 @@ export default function RoomDetailPage() {
   const params = useParams();
   const router = useRouter();
   const roomId = params?.id as string;
+  const joinedRoomIdRef = useRef<string | null>(null);
 
   const [room, setRoom] = useState<Room | null>(null);
   const [votes, setVotes] = useState<Vote[]>([]);
@@ -73,6 +75,10 @@ export default function RoomDetailPage() {
       const roomData = await roomRes.json();
 
       if (roomRes.ok && roomData.success && roomData.room) {
+        if (joinedRoomIdRef.current !== roomId) {
+          trackRoomJoin(roomData.room.date_selection_mode || 'RANGE', roomData.room.status || 'OPEN');
+          joinedRoomIdRef.current = roomId;
+        }
         setRoom(roomData.room);
 
         const votesRes = await fetch(`/api/rooms/${roomId}/votes`);
@@ -144,6 +150,8 @@ export default function RoomDetailPage() {
       throw new Error(data.error || '투표 제출 중 오류가 발생했습니다.');
     }
 
+    trackVoteSubmit(room.date_selection_mode, Object.keys(input.availability).length);
+
     if (typeof window !== 'undefined') {
       localStorage.setItem(`moyeoit_voted_${roomId}`, input.nickname);
     }
@@ -213,6 +221,7 @@ export default function RoomDetailPage() {
         throw new Error(data.error || '날짜 확정에 실패했습니다.');
       }
 
+      trackRoomConfirmed(room.date_selection_mode);
       await loadRoomData();
     } catch (err: any) {
       alert(err.message || '날짜 확정에 실패했습니다.');

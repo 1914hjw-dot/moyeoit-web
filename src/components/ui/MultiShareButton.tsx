@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Share2, Check, Copy, MessageCircle } from 'lucide-react';
+import { trackRoomShare } from '@/lib/gtag';
 
 interface MultiShareButtonProps {
   title: string;
@@ -50,6 +51,7 @@ export const MultiShareButton: React.FC<MultiShareButtonProps> = ({
             },
           ],
         });
+        trackRoomShare('kakao');
         return;
       } catch (e) {
         console.warn('Kakao share fallback to Web Share / Clipboard:', e);
@@ -64,6 +66,7 @@ export const MultiShareButton: React.FC<MultiShareButtonProps> = ({
           text: shareText,
           url,
         });
+        trackRoomShare('web_share');
         return;
       } catch (e) {
         // User cancelled or share failed
@@ -76,6 +79,7 @@ export const MultiShareButton: React.FC<MultiShareButtonProps> = ({
         await navigator.clipboard.writeText(url);
         setCopied(true);
         setTimeout(() => setCopied(false), 2500);
+        trackRoomShare('clipboard');
         return;
       } catch (e) {
         console.warn('Clipboard write failed:', e);
@@ -127,6 +131,7 @@ export const MultiShareButton: React.FC<MultiShareButtonProps> = ({
                   navigator.clipboard.writeText(url);
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2500);
+                  trackRoomShare('clipboard');
                 }}
                 className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-extrabold flex items-center gap-1 shrink-0"
               >

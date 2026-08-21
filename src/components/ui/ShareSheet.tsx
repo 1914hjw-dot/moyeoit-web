@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Room } from '@/types/schema';
 import { Copy, Check, X, Share2, ExternalLink } from 'lucide-react';
+import { trackRoomShare } from '@/lib/gtag';
 
 interface ShareSheetProps {
   room: Room;
@@ -29,6 +30,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ room, onClose }) => {
       }
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
+      trackRoomShare('clipboard');
     } catch (e) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
@@ -43,6 +45,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ room, onClose }) => {
           text: room.description || '약속 날짜를 투표해 주세요!',
           url: shareUrl,
         });
+        trackRoomShare('web_share');
       } catch (e) {
         handleCopyLink();
       }

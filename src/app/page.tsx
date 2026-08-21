@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CalendarSelector } from '@/components/ui/CalendarSelector';
+import { trackRoomCreateStart, trackRoomCreated } from '@/lib/gtag';
 import { AdFitBanner } from '@/components/ads';
 import { HomeBelowTheFold } from '@/components/ui/HomeBelowTheFold';
 import { Footer } from '@/components/ui/Footer';
@@ -36,7 +37,8 @@ export default function HomePage() {
       alert('기간 지정 모드에서는 최소 1개 이상의 후보 날짜를 선택해 주세요.');
       return;
     }
-
+    
+    trackRoomCreateStart(dateSelectionMode);
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/rooms', {
@@ -57,6 +59,7 @@ export default function HomePage() {
         throw new Error(data.error || '방 생성에 실패했습니다. 다시 시도해 주세요.');
       }
 
+      trackRoomCreated(dateSelectionMode);
       const publicUrlId = data.room.legacy_slug || data.room.id;
 
       if (typeof window !== 'undefined') {

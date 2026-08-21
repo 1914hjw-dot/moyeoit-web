@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
+import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
 import './globals.css';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://moyeoit-web.vercel.app';
@@ -132,18 +133,7 @@ export default function RootLayout({
         />
 
         {/* Google Analytics 4 Script */}
-        <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=G-MOYEOIT2026`}
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-MOYEOIT2026');
-          `}
-        </Script>
+        <GoogleAnalytics />
       </head>
       <body className="antialiased selection:bg-indigo-500/20 selection:text-indigo-900 min-h-screen overflow-x-hidden pb-[env(safe-area-inset-bottom)]">
         {children}
