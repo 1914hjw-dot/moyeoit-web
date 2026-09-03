@@ -31,7 +31,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ room, onClose }) => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
       trackRoomShare('clipboard');
-    } catch (e) {
+    } catch {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     }
@@ -46,7 +46,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ room, onClose }) => {
           url: shareUrl,
         });
         trackRoomShare('web_share');
-      } catch (e) {
+      } catch {
         handleCopyLink();
       }
     } else {

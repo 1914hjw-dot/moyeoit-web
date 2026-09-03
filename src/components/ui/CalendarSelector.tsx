@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Zap, Check, Trash2, Clock, Globe, Info } from 'lucide-react';
+import React, { useState, useSyncExternalStore } from 'react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Zap, Check, Trash2, Clock, Globe } from 'lucide-react';
 import { ScheduleType, DateSelectionMode } from '@/types/schema';
 
 interface CalendarSelectorProps {
@@ -14,6 +14,10 @@ interface CalendarSelectorProps {
   dateSelectionMode?: DateSelectionMode;
   onChangeDateSelectionMode?: (mode: DateSelectionMode) => void;
 }
+
+const subscribeToHydration = () => () => undefined;
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 export const CalendarSelector: React.FC<CalendarSelectorProps> = ({
   selectedDates,
@@ -78,6 +82,20 @@ export const CalendarSelector: React.FC<CalendarSelectorProps> = ({
   };
 
   const isFreeMode = dateSelectionMode === 'FREE';
+  const isHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    getClientSnapshot,
+    getServerSnapshot
+  );
+
+  if (!isHydrated) {
+    return (
+      <div className="w-full sys-card p-4 sm:p-6 bg-white border-slate-200/80 shadow-sm min-h-[420px] animate-pulse">
+        <div className="h-10 rounded-2xl bg-slate-100" />
+        <div className="mt-5 h-72 rounded-2xl bg-slate-50" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full sys-card p-4 sm:p-6 space-y-5 bg-white border-slate-200/80 shadow-sm">

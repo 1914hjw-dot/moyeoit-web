@@ -11,7 +11,8 @@ export const AdBanner: React.FC<AdBannerProps> = ({ className = '' }) => {
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
-        ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+        window.adsbygoogle = window.adsbygoogle || [];
+        window.adsbygoogle.push({});
       }
     } catch {
       // Ignore AdSense script initialization errors gracefully

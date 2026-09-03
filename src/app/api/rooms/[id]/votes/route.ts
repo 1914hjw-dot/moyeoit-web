@@ -1,113 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getVotesByRoomId, submitVote, deleteVote, VoteConflictError } from '@/lib/services/voteService';
-
-function hasPrototypePollutionKey(obj: any): boolean {
-  if (!obj || typeof obj !== 'object') return false;
-  const keys = Object.keys(obj);
-  return keys.some((k) => k === '__proto__' || k === 'constructor' || k === 'prototype');
-}
+import { deleteVote, getVotesByRoomId, submitVote } from '@/lib/services/voteService';
+import {
+  enforceRateLimit,
+  errorResponse,
+  requireJsonRequest,
+} from '@/lib/http/api';
 
 export async function GET(
-  req: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimitError = await enforceRateLimit(request, 'vote-read', 120);
+  if (rateLimitError) return rateLimitError;
+
   try {
     const { id } = await params;
     const votes = await getVotesByRoomId(id);
-    return NextResponse.json({ success: true, votes });
-  } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: '투표 데이터를 불러오는 중 오류가 발생했습니다.' },
-      { status: 500 }
+      { success: true, votes },
+      { headers: { 'Cache-Control': 'private, no-store' } }
     );
+  } catch (error) {
+    console.error('API /api/rooms/[id]/votes GET failed:', error);
+    return errorResponse(error, '투표 데이터를 불러오는 중 오류가 발생했습니다.');
   }
 }
 
 export async function POST(
-  req: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // 1. Content-Type Header Verification
-  const contentType = req.headers.get('content-type') || '';
-  if (!contentType.includes('application/json')) {
-    return NextResponse.json(
-      { success: false, error: '올바른 Content-Type (application/json)이 아닙니다.' },
-      { status: 415 }
-    );
-  }
+  const contentTypeError = requireJsonRequest(request);
+  if (contentTypeError) return contentTypeError;
+  const rateLimitError = await enforceRateLimit(request, 'vote-write', 15);
+  if (rateLimitError) return rateLimitError;
 
   try {
     const { id } = await params;
-    const body = await req.json();
-
-    // 2. Prototype Pollution Prevention Check (Own Keys Validation)
-    if (hasPrototypePollutionKey(body)) {
-      return NextResponse.json(
-        { success: false, error: '부정확한 요청 바디입니다.' },
-        { status: 400 }
-      );
-    }
-
-    const vote = await submitVote({
-      ...body,
-      room_id: id,
-    });
+    const body = (await request.json()) as Record<string, unknown>;
+    const vote = await submitVote({ ...body, room_id: id });
     return NextResponse.json({ success: true, vote }, { status: 201 });
-  } catch (error: any) {
-    console.error('API /api/rooms/[id]/votes POST Error:', error);
-
-    // 3. Handle Duplicate Conflict Error gracefully (HTTP 409)
-    if (error instanceof VoteConflictError || error.name === 'VoteConflictError') {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 409 }
-      );
-    }
-
-    return NextResponse.json(
-      { success: false, error: error.message || '투표 저장 중 오류가 발생했습니다.' },
-      { status: 400 }
-    );
+  } catch (error) {
+    console.error('API /api/rooms/[id]/votes POST failed:', error);
+    return errorResponse(error, '투표 저장 중 오류가 발생했습니다.');
   }
 }
 
 export async function DELETE(
-  req: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // 1. Content-Type Header Verification
-  const contentType = req.headers.get('content-type') || '';
-  if (!contentType.includes('application/json')) {
-    return NextResponse.json(
-      { success: false, error: '올바른 Content-Type (application/json)이 아닙니다.' },
-      { status: 415 }
-    );
-  }
+  const contentTypeError = requireJsonRequest(request);
+  if (contentTypeError) return contentTypeError;
+  const rateLimitError = await enforceRateLimit(request, 'vote-delete', 10);
+  if (rateLimitError) return rateLimitError;
 
   try {
     const { id } = await params;
-    const body = await req.json();
-
-    // 2. Prototype Pollution Prevention Check (Own Keys Validation)
-    if (hasPrototypePollutionKey(body)) {
-      return NextResponse.json(
-        { success: false, error: '부정확한 요청 바디입니다.' },
-        { status: 400 }
-      );
-    }
-
-    await deleteVote({
-      room_id: id,
-      nickname: body.nickname,
-      password: body.password,
-    });
-
+    const body = (await request.json()) as Record<string, unknown>;
+    await deleteVote({ ...body, room_id: id });
     return NextResponse.json({ success: true, message: '투표가 성공적으로 삭제되었습니다.' });
-  } catch (error: any) {
-    console.error('API /api/rooms/[id]/votes DELETE Error:', error);
-    return NextResponse.json(
-      { success: false, error: error.message || '투표 삭제 중 오류가 발생했습니다.' },
-      { status: 400 }
-    );
+  } catch (error) {
+    console.error('API /api/rooms/[id]/votes DELETE failed:', error);
+    return errorResponse(error, '투표 삭제 중 오류가 발생했습니다.');
   }
 }

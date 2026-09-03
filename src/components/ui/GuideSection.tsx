@@ -9,7 +9,7 @@ export interface GuideArticleMeta {
   summary: string;
   readTime: string;
   date: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 export const GUIDE_ARTICLES: GuideArticleMeta[] = [

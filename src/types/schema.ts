@@ -23,6 +23,12 @@ export interface Room {
   deleted_at?: string | null;
 }
 
+export type PublicRoom = Omit<Room, 'secret_hash' | 'deleted_at'>;
+
+export interface CreatedRoom extends PublicRoom {
+  host_secret: string;
+}
+
 export interface Vote {
   id: string;
   room_id: string;
@@ -35,6 +41,9 @@ export interface Vote {
   updated_at: string;
   deleted_at?: string | null;
 }
+
+export type PublicVote = Omit<Vote, 'vote_token' | 'password_hash' | 'deleted_at'>;
+export type OwnedVote = Omit<Vote, 'password_hash' | 'deleted_at'>;
 
 export interface HeatmapCellData {
   key: string;
@@ -114,6 +123,6 @@ export interface AuditLog {
   target_id: string;
   ip_address?: string;
   user_agent?: string;
-  payload?: any;
+  payload?: unknown;
   created_at: string;
 }

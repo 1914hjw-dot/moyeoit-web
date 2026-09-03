@@ -9,6 +9,19 @@ function applyUGCFilter(val: string, fieldName: string): string {
   return result.sanitizedText;
 }
 
+function isValidDateString(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+const RoomIdSchema = z.string().trim().min(1, { message: '올바른 방 번호가 필요합니다.' }).max(100);
+
 export const ScheduleTypeSchema = z.enum(['date_only', 'date_time']);
 
 export const DateSelectionModeSchema = z.enum(['RANGE', 'FREE']);
@@ -34,12 +47,24 @@ export const CreateRoomInputSchema = z
       .default(''),
     schedule_type: ScheduleTypeSchema.default('date_only'),
     candidate_dates: z
-      .array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: '올바른 날짜 형식(YYYY-MM-DD)이어야 합니다.' }))
+      .array(
+        z.string().refine(isValidDateString, {
+          message: '실제로 존재하는 날짜(YYYY-MM-DD)를 입력해 주세요.',
+        })
+      )
       .max(60, { message: '후보 날짜는 최대 60개까지 선택 가능합니다.' })
+      .refine((dates) => new Set(dates).size === dates.length, {
+        message: '후보 날짜는 중복해서 등록할 수 없습니다.',
+      })
       .optional()
       .default([]),
     time_slots: z
-      .array(z.string().transform((val) => applyUGCFilter(val, '시간대')))
+      .array(
+        z
+          .string()
+          .transform((val) => applyUGCFilter(val, '시간대'))
+          .pipe(z.string().min(1).max(50))
+      )
       .max(10, { message: '시간대는 최대 10개까지 설정 가능합니다.' })
       .optional()
       .default([]),
@@ -61,17 +86,18 @@ export const CreateRoomInputSchema = z
   );
 
 export const ConfirmRoomInputSchema = z.object({
-  room_id: z.string().trim().min(1, { message: '올바른 방 번호가 필요합니다.' }),
+  room_id: RoomIdSchema,
   confirmed_date: z
     .string()
     .trim()
     .min(1, { message: '확정할 날짜를 선택해 주세요.' })
-    .transform((val) => applyUGCFilter(val, '확정 날짜')),
-  host_secret: z.string().trim().optional(),
+    .transform((val) => applyUGCFilter(val, '확정 날짜'))
+    .pipe(z.string().max(100, { message: '확정 날짜 값이 너무 깁니다.' })),
+  host_secret: z.string().trim().max(200).optional().default(''),
 });
 
 export const SubmitVoteInputSchema = z.object({
-  room_id: z.string().trim().min(1, { message: '올바른 방 번호가 필요합니다.' }),
+  room_id: RoomIdSchema,
   nickname: z
     .string()
     .transform((val) => applyUGCFilter(val, '닉네임'))
@@ -82,8 +108,12 @@ export const SubmitVoteInputSchema = z.object({
         .max(30, { message: '닉네임은 최대 30자까지 입력 가능합니다.' })
     ),
   password: z.string().trim().max(20).optional().default(''),
-  vote_token: z.string().trim().optional(),
-  availability: z.record(z.string(), AvailabilityStatusSchema),
+  vote_token: z.string().trim().max(100).optional().default(''),
+  availability: z
+    .record(z.string().max(100), AvailabilityStatusSchema)
+    .refine((availability) => Object.keys(availability).length <= 600, {
+      message: '한 번에 등록할 수 있는 응답 항목이 너무 많습니다.',
+    }),
   note: z
     .string()
     .transform((val) => applyUGCFilter(val, '한줄 메모'))
@@ -93,7 +123,7 @@ export const SubmitVoteInputSchema = z.object({
 });
 
 export const DeleteVoteInputSchema = z.object({
-  room_id: z.string().trim().min(1, { message: '올바른 방 번호가 필요합니다.' }),
+  room_id: RoomIdSchema,
   nickname: z
     .string()
     .transform((val) => applyUGCFilter(val, '닉네임'))
@@ -104,7 +134,7 @@ export const DeleteVoteInputSchema = z.object({
         .max(30, { message: '닉네임은 최대 30자까지 입력 가능합니다.' })
     ),
   password: z.string().trim().max(20).optional().default(''),
-  vote_token: z.string().trim().optional(),
+  vote_token: z.string().trim().max(100).optional().default(''),
 });
 
 export type CreateRoomInputZod = z.infer<typeof CreateRoomInputSchema>;

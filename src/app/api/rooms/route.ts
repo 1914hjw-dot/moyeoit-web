@@ -1,40 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRoom } from '@/lib/services/roomService';
+import { enforceRateLimit, errorResponse, requireJsonRequest } from '@/lib/http/api';
 
-function hasPrototypePollutionKey(obj: any): boolean {
-  if (!obj || typeof obj !== 'object') return false;
-  const keys = Object.keys(obj);
-  return keys.some((k) => k === '__proto__' || k === 'constructor' || k === 'prototype');
-}
+export async function POST(request: NextRequest) {
+  const contentTypeError = requireJsonRequest(request);
+  if (contentTypeError) return contentTypeError;
 
-export async function POST(req: NextRequest) {
-  // 1. Content-Type Header Verification
-  const contentType = req.headers.get('content-type') || '';
-  if (!contentType.includes('application/json')) {
-    return NextResponse.json(
-      { success: false, error: '올바른 Content-Type (application/json)이 아닙니다.' },
-      { status: 415 }
-    );
-  }
+  const rateLimitError = await enforceRateLimit(request, 'room-create', 5);
+  if (rateLimitError) return rateLimitError;
 
   try {
-    const body = await req.json();
-
-    // 2. Prototype Pollution Prevention Check (Own Keys Validation)
-    if (hasPrototypePollutionKey(body)) {
-      return NextResponse.json(
-        { success: false, error: '부정확한 요청 바디입니다.' },
-        { status: 400 }
-      );
-    }
-
+    const body: unknown = await request.json();
     const room = await createRoom(body);
     return NextResponse.json({ success: true, room }, { status: 201 });
-  } catch (error: any) {
-    console.error('API /api/rooms POST Error:', error);
-    return NextResponse.json(
-      { success: false, error: error.message || '모임방 생성 중 오류가 발생했습니다.' },
-      { status: 400 }
-    );
+  } catch (error) {
+    console.error('API /api/rooms POST failed:', error);
+    return errorResponse(error, '모임방 생성 중 오류가 발생했습니다.');
   }
 }

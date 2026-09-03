@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useSyncExternalStore } from 'react';
 import { IS_PRODUCTION, ADFIT_HOME_UNIT_ID } from '@/lib/ads';
 
 interface AdFitBannerProps {
@@ -10,6 +10,10 @@ interface AdFitBannerProps {
   className?: string;
 }
 
+const subscribeToHydration = () => () => undefined;
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export const AdFitBanner: React.FC<AdFitBannerProps> = ({
   unitId = ADFIT_HOME_UNIT_ID,
   width = 320,
@@ -17,11 +21,11 @@ export const AdFitBanner: React.FC<AdFitBannerProps> = ({
   className = '',
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    setIsLoaded(true);
-  }, []);
+  const isLoaded = useSyncExternalStore(
+    subscribeToHydration,
+    getClientSnapshot,
+    getServerSnapshot
+  );
 
   useEffect(() => {
     if (!isLoaded || !containerRef.current) return;

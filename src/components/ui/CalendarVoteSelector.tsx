@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AvailabilityStatus, HeatmapCellData, DateSelectionMode } from '@/types/schema';
+import { AvailabilityStatus, DateSelectionMode } from '@/types/schema';
 import { ChevronLeft, ChevronRight, CheckCheck, X, Calendar as CalendarIcon, Sparkles, Clock, Check, Globe, RotateCcw } from 'lucide-react';
 import { formatKoreanDate } from '@/lib/analytics';
 
@@ -11,7 +11,6 @@ interface CalendarVoteSelectorProps {
   onChangeAvailability: (newAvailability: Record<string, AvailabilityStatus>) => void;
   timeSlots?: string[];
   scheduleType?: 'date_only' | 'date_time';
-  heatmapData?: Record<string, HeatmapCellData>;
   readOnly?: boolean;
   dateSelectionMode?: DateSelectionMode;
 }
@@ -24,7 +23,6 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
   onChangeAvailability,
   timeSlots = [],
   scheduleType = 'date_only',
-  heatmapData = {},
   readOnly = false,
   dateSelectionMode = 'RANGE',
 }) => {
@@ -50,7 +48,6 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
     }
   } else {
     // RANGE mode: Extract unique months from candidateDates
-    const candidateSet = new Set(candidateDates);
     for (const dateStr of candidateDates) {
       const [y, m] = dateStr.split('-').map(Number);
       const key = `${y}-${m}`;
@@ -323,8 +320,6 @@ export const CalendarVoteSelector: React.FC<CalendarVoteSelectorProps> = ({
           const isPossible = status === 'possible';
           const isMaybe = status === 'maybe';
           const isImpossible = status === 'impossible';
-          const isUnselected = status === undefined;
-
           return (
             <button
               key={idx}

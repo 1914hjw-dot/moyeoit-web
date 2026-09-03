@@ -4,7 +4,7 @@ import React from 'react';
 import { Room, Vote } from '@/types/schema';
 import { formatKoreanDate } from '@/lib/analytics';
 import { MultiShareButton } from '@/components/ui/MultiShareButton';
-import { PartyPopper, CalendarCheck, Users, Sparkles } from 'lucide-react';
+import { PartyPopper, CalendarCheck, Users } from 'lucide-react';
 
 interface ConfirmedResultCardProps {
   room: Room;

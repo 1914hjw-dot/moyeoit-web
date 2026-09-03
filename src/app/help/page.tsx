@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, HelpCircle, Calendar, Share2, CheckCircle2, Edit3, AlertTriangle, ArrowRight, Globe, PartyPopper } from 'lucide-react';
+import { ArrowLeft, HelpCircle, Calendar, Share2, CheckCircle2, AlertTriangle, ArrowRight, PartyPopper } from 'lucide-react';
 import { Footer } from '@/components/ui/Footer';
 
 export default function HelpPage() {

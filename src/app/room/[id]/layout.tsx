@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { supabase } from '@/lib/supabase';
+import { getRoomById } from '@/lib/services/roomService';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://moyeoit-web.vercel.app';
 
@@ -18,21 +18,14 @@ export async function generateMetadata({
   let roomDescription = '약속 날짜를 선택해주세요. 전원 참석 가능한 최적의 날짜를 한눈에 확인해보세요.';
 
   try {
-    if (supabase) {
-      const { data: room } = await supabase
-        .from('rooms')
-        .select('title, description')
-        .eq('id', id)
-        .single();
-
-      if (room && room.title && room.title.trim().length > 0 && isNaN(Number(room.title.trim()))) {
-        roomTitle = room.title.trim();
-      }
-      if (room && room.description && room.description.trim().length > 0) {
-        roomDescription = room.description.trim();
-      }
+    const room = await getRoomById(id);
+    if (room?.title && room.title.trim().length > 0 && isNaN(Number(room.title.trim()))) {
+      roomTitle = room.title.trim();
     }
-  } catch (e) {
+    if (room?.description && room.description.trim().length > 0) {
+      roomDescription = room.description.trim();
+    }
+  } catch {
     // Fallback gracefully if query fails
   }
 

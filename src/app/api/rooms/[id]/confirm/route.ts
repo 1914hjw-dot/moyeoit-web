@@ -1,32 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { confirmRoomDate } from '@/lib/services/roomService';
+import { confirmRoomDate, toPublicRoom } from '@/lib/services/roomService';
+import { enforceRateLimit, errorResponse, requireJsonRequest } from '@/lib/http/api';
 
 export async function POST(
-  req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const contentTypeError = requireJsonRequest(request);
+  if (contentTypeError) return contentTypeError;
+  const rateLimitError = await enforceRateLimit(request, 'room-confirm', 5);
+  if (rateLimitError) return rateLimitError;
+
   try {
-    const { id } = await context.params;
-    const body = await req.json();
-
-    const confirmedRoom = await confirmRoomDate({
-      room_id: id,
-      confirmed_date: body.confirmed_date,
-      host_secret: body.host_secret,
-    });
-
-    return NextResponse.json({
-      success: true,
-      room: confirmedRoom,
-    });
-  } catch (err: any) {
-    console.error('API confirm route error:', err);
-    return NextResponse.json(
-      {
-        success: false,
-        error: err.message || '날짜 확정에 실패했습니다.',
-      },
-      { status: err.message?.includes('권한') ? 403 : 400 }
-    );
+    const { id } = await params;
+    const body = (await request.json()) as Record<string, unknown>;
+    const room = await confirmRoomDate({ ...body, room_id: id });
+    return NextResponse.json({ success: true, room: toPublicRoom(room) });
+  } catch (error) {
+    console.error('API /api/rooms/[id]/confirm POST failed:', error);
+    return errorResponse(error, '날짜 확정에 실패했습니다.');
   }
 }

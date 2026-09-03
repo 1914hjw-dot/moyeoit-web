@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Crown, Sparkles, CheckCircle2, AlertCircle, ThumbsUp, ShieldCheck, Users, Share2, Info } from 'lucide-react';
-import { GoldenDateRecommendation, HeatmapCellData } from '@/types/schema';
+import { HeatmapCellData } from '@/types/schema';
 import { evaluateDecision, formatKoreanDate } from '@/lib/analytics';
 
 interface GoldenDateCardProps {

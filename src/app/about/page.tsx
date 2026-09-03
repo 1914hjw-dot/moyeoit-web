@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, ShieldCheck, Heart, Sparkles, CheckCircle2, Lock } from 'lucide-react';
+import { ArrowLeft, Calendar, Heart, Sparkles, CheckCircle2, Lock } from 'lucide-react';
 import { Footer } from '@/components/ui/Footer';
 
 export default function AboutPage() {
@@ -37,7 +37,7 @@ export default function AboutPage() {
             단톡방 피로도 없는 약속 조율,<br />모여잇이 만들어 갑니다.
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-semibold leading-relaxed">
-            "언제 만날까?" 한 마디로 시작된 수많은 메시지의 피로감에서 벗어나세요.
+            “언제 만날까?” 한 마디로 시작된 수많은 메시지의 피로감에서 벗어나세요.
           </p>
         </div>
 

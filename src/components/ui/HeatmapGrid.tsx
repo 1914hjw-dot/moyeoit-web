@@ -1,18 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Room, HeatmapCellData } from '@/types/schema';
+import { HeatmapCellData } from '@/types/schema';
 import { formatKoreanDate } from '@/lib/analytics';
 import { LayoutGrid, ChevronDown, ChevronUp, UserCheck, HelpCircle, UserX, X } from 'lucide-react';
 
 interface HeatmapGridProps {
-  room: Room;
   heatmapMap: Record<string, HeatmapCellData>;
   totalVotersCount: number;
 }
 
 export const HeatmapGrid: React.FC<HeatmapGridProps> = ({
-  room,
   heatmapMap,
   totalVotersCount,
 }) => {

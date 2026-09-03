@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Room, Vote, SubmitVoteInput } from '@/types/schema';
 import { computeHeatmapData } from '@/lib/analytics';
@@ -18,7 +18,36 @@ import {
   OfflineState,
   InvalidLinkState,
 } from '@/components/ui/StateViews';
-import { Share2, Vote as VoteIcon, ArrowLeft, Check, Edit3, Users, Crown, Trash2, AlertTriangle, X, PartyPopper } from 'lucide-react';
+import { Vote as VoteIcon, ArrowLeft, Check, Edit3, Users, Crown, Trash2, AlertTriangle, X } from 'lucide-react';
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
+function getRoomIdentifiers(roomId: string, room: Room): string[] {
+  return Array.from(new Set([roomId, room.id, room.legacy_slug].filter((id): id is string => Boolean(id))));
+}
+
+function voteTokenStorageKey(roomIdentifier: string, nickname: string): string {
+  return `moyeoit_vote_token_${roomIdentifier}_${nickname.trim().toLocaleLowerCase('ko-KR')}`;
+}
+
+function subscribeConnectivity(callback: () => void): () => void {
+  window.addEventListener('online', callback);
+  window.addEventListener('offline', callback);
+  return () => {
+    window.removeEventListener('online', callback);
+    window.removeEventListener('offline', callback);
+  };
+}
+
+function getOfflineSnapshot(): boolean {
+  return !navigator.onLine;
+}
+
+function getServerOfflineSnapshot(): boolean {
+  return false;
+}
 
 export default function RoomDetailPage() {
   const params = useParams();
@@ -29,7 +58,11 @@ export default function RoomDetailPage() {
   const [room, setRoom] = useState<Room | null>(null);
   const [votes, setVotes] = useState<Vote[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isOffline, setIsOffline] = useState(false);
+  const isOffline = useSyncExternalStore(
+    subscribeConnectivity,
+    getOfflineSnapshot,
+    getServerOfflineSnapshot
+  );
 
   // Host role tracking
   const [isHost, setIsHost] = useState(false);
@@ -45,31 +78,8 @@ export default function RoomDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteErrorMsg, setDeleteErrorMsg] = useState('');
 
-  // Confirmation state
-  const [isConfirming, setIsConfirming] = useState(false);
-
-  // Network offline listener
-  useEffect(() => {
-    const handleOffline = () => setIsOffline(true);
-    const handleOnline = () => setIsOffline(false);
-
-    if (typeof window !== 'undefined') {
-      setIsOffline(!navigator.onLine);
-      window.addEventListener('offline', handleOffline);
-      window.addEventListener('online', handleOnline);
-    }
-
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('offline', handleOffline);
-        window.removeEventListener('online', handleOnline);
-      }
-    };
-  }, []);
-
-  const loadRoomData = async () => {
+  const loadRoomData = useCallback(async () => {
     if (!roomId) return;
-    setLoading(true);
     try {
       const roomRes = await fetch(`/api/rooms/${roomId}`);
       const roomData = await roomRes.json();
@@ -86,13 +96,11 @@ export default function RoomDetailPage() {
         const voteList = votesRes.ok && votesData.success ? votesData.votes : [];
         setVotes(voteList);
 
-        // Check if user is host
-        const isHostStored = typeof window !== 'undefined'
-          ? (localStorage.getItem(`moyeoit_host_${roomId}`) === 'true' ||
-             (roomData.room?.id && localStorage.getItem(`moyeoit_host_${roomData.room.id}`) === 'true') ||
-             (roomData.room?.legacy_slug && localStorage.getItem(`moyeoit_host_${roomData.room.legacy_slug}`) === 'true'))
-          : false;
-        setIsHost(isHostStored);
+        const identifiers = getRoomIdentifiers(roomId, roomData.room as Room);
+        const hostSecret = identifiers
+          .map((identifier) => localStorage.getItem(`moyeoit_host_secret_${identifier}`))
+          .find(Boolean);
+        setIsHost(Boolean(hostSecret));
 
         // Check if user has previously voted stored in local storage nickname key
         const savedNickname = typeof window !== 'undefined'
@@ -103,7 +111,10 @@ export default function RoomDetailPage() {
         if (savedNickname && voteList.length > 0) {
           const found = voteList.find((v: Vote) => v.nickname.toLowerCase() === savedNickname.toLowerCase());
           if (found) {
-            setMyVote(found);
+            const voteToken = identifiers
+              .map((identifier) => localStorage.getItem(voteTokenStorageKey(identifier, found.nickname)))
+              .find(Boolean);
+            setMyVote({ ...found, vote_token: voteToken || undefined });
           } else {
             setMyVote(null);
           }
@@ -119,11 +130,12 @@ export default function RoomDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [roomId]);
 
   useEffect(() => {
-    loadRoomData();
-  }, [roomId]);
+    const timer = window.setTimeout(() => void loadRoomData(), 0);
+    return () => window.clearTimeout(timer);
+  }, [loadRoomData]);
 
   if (isOffline) return <OfflineState onRetry={loadRoomData} />;
   if (loading) return <LoadingState message="약속 정보를 불러오는 중입니다..." />;
@@ -137,6 +149,7 @@ export default function RoomDetailPage() {
   const totalVotersCount = votes.length;
   const isVoted = Boolean(myVote);
   const isConfirmed = room.status === 'CONFIRMED';
+  const isDemoRoom = room.id.startsWith('demo-room-');
 
   const handleSubmitVote = async (input: SubmitVoteInput) => {
     const res = await fetch(`/api/rooms/${roomId}/votes`, {
@@ -153,7 +166,16 @@ export default function RoomDetailPage() {
     trackVoteSubmit(room.date_selection_mode, Object.keys(input.availability).length);
 
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`moyeoit_voted_${roomId}`, input.nickname);
+      const identifiers = getRoomIdentifiers(roomId, room);
+      for (const identifier of identifiers) {
+        localStorage.setItem(`moyeoit_voted_${identifier}`, input.nickname);
+        if (data.vote?.vote_token) {
+          localStorage.setItem(
+            voteTokenStorageKey(identifier, input.nickname),
+            data.vote.vote_token
+          );
+        }
+      }
     }
 
     await loadRoomData();
@@ -174,6 +196,7 @@ export default function RoomDetailPage() {
         body: JSON.stringify({
           nickname: myVote.nickname,
           password: deletePin.trim(),
+          vote_token: myVote.vote_token || '',
         }),
       });
 
@@ -183,15 +206,18 @@ export default function RoomDetailPage() {
       }
 
       if (typeof window !== 'undefined') {
-        localStorage.removeItem(`moyeoit_voted_${roomId}`);
+        for (const identifier of getRoomIdentifiers(roomId, room)) {
+          localStorage.removeItem(`moyeoit_voted_${identifier}`);
+          localStorage.removeItem(voteTokenStorageKey(identifier, myVote.nickname));
+        }
       }
 
       setMyVote(null);
       setShowDeleteModal(false);
       setDeletePin('');
       await loadRoomData();
-    } catch (err: any) {
-      setDeleteErrorMsg(err.message || '투표 삭제 중 오류가 발생했습니다.');
+    } catch (error) {
+      setDeleteErrorMsg(getErrorMessage(error, '투표 삭제 중 오류가 발생했습니다.'));
     } finally {
       setIsDeleting(false);
     }
@@ -203,9 +229,10 @@ export default function RoomDetailPage() {
       return;
     }
 
-    const hostSecret = typeof window !== 'undefined' ? localStorage.getItem(`moyeoit_host_secret_${room.id}`) || undefined : undefined;
+    const hostSecret = getRoomIdentifiers(roomId, room)
+      .map((identifier) => localStorage.getItem(`moyeoit_host_secret_${identifier}`))
+      .find(Boolean);
 
-    setIsConfirming(true);
     try {
       const res = await fetch(`/api/rooms/${room.id}/confirm`, {
         method: 'POST',
@@ -223,10 +250,8 @@ export default function RoomDetailPage() {
 
       trackRoomConfirmed(room.date_selection_mode);
       await loadRoomData();
-    } catch (err: any) {
-      alert(err.message || '날짜 확정에 실패했습니다.');
-    } finally {
-      setIsConfirming(false);
+    } catch (error) {
+      alert(getErrorMessage(error, '날짜 확정에 실패했습니다.'));
     }
   };
 
@@ -307,7 +332,14 @@ export default function RoomDetailPage() {
             </span>
           </div>
 
-          {isVoted && !showVoteForm ? (
+          {isDemoRoom ? (
+            <div className="sys-card p-5 border-indigo-200 bg-indigo-50/60 text-center space-y-2 rounded-3xl">
+              <p className="text-sm font-black text-slate-900">읽기 전용 시연 모임방입니다.</p>
+              <p className="text-xs text-slate-600">
+                실제 투표 흐름을 사용하려면 홈에서 새 모임방을 만들어 주세요.
+              </p>
+            </div>
+          ) : isVoted && !showVoteForm ? (
             <div className="sys-card p-5 border-emerald-200 bg-emerald-50/60 space-y-3 shadow-sm rounded-3xl">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
@@ -392,7 +424,6 @@ export default function RoomDetailPage() {
             </div>
 
             <HeatmapGrid
-              room={room}
               heatmapMap={heatmapMap}
               totalVotersCount={totalVotersCount}
             />
@@ -492,7 +523,15 @@ export default function RoomDetailPage() {
       {/* Floating Sticky Mobile CTA */}
       <div className="fixed bottom-4 left-4 right-4 z-40 sm:hidden">
         <div className="sys-card p-2 bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-xl rounded-2xl">
-          {!isVoted || showVoteForm ? (
+          {isDemoRoom ? (
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              className="w-full sys-btn-primary h-11 text-xs font-black"
+            >
+              새 모임방 만들기
+            </button>
+          ) : !isVoted || showVoteForm ? (
             <button
               type="button"
               onClick={() => {

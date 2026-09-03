@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { UserCheck, Sparkles, ShieldCheck, Calendar as CalendarIcon, ChevronDown, ChevronUp, MessageSquare, Eye, EyeOff, Globe } from 'lucide-react';
+import { Sparkles, ShieldCheck, Calendar as CalendarIcon, ChevronDown, ChevronUp, MessageSquare, Eye, EyeOff, Globe } from 'lucide-react';
 import { Room, Vote, AvailabilityStatus, SubmitVoteInput } from '@/types/schema';
 import { CalendarVoteSelector } from '@/components/ui/CalendarVoteSelector';
 
@@ -71,7 +71,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
     }
 
     const possibleKeys = Object.entries(availability).filter(
-      ([_, status]) => status === 'possible' || status === 'maybe'
+      ([, status]) => status === 'possible' || status === 'maybe'
     );
 
     if (isFreeMode && possibleKeys.length === 0) {
@@ -85,11 +85,12 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
         room_id: room.id,
         nickname: nickname.trim(),
         password: password.trim(),
+        vote_token: existingVote?.vote_token || '',
         availability,
         note: note.trim(),
       });
-    } catch (err: any) {
-      setErrorMsg(err.message || '투표 제출 중 오류가 발생했습니다.');
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : '투표 제출 중 오류가 발생했습니다.');
     } finally {
       setIsSubmitting(false);
     }

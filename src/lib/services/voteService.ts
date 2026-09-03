@@ -1,263 +1,292 @@
-import { Vote, SubmitVoteInput, DeleteVoteInput } from '@/types/schema';
-import { SubmitVoteInputSchema, DeleteVoteInputSchema } from '@/lib/validation/schemas';
-import { supabaseServer, isSupabaseConfigured } from '@/lib/supabase/server';
-import { getVotesByRoomIdMock, submitVoteMock } from '@/lib/mockStore';
-import { hashPassword } from '@/lib/crypto';
-import { getRoomById, logAuditTrail } from './roomService';
+import 'server-only';
 
-export class VoteConflictError extends Error {
+import { OwnedVote, PublicVote, Room, Vote } from '@/types/schema';
+import { DeleteVoteInputSchema, SubmitVoteInputSchema } from '@/lib/validation/schemas';
+import { supabaseServer } from '@/lib/supabase/server';
+import { getVotesByRoomIdMock } from '@/lib/mockStore';
+import {
+  createPasswordHash,
+  timingSafeStringEqual,
+  verifyPassword,
+} from '@/lib/crypto';
+import { getRoomById, isDemoRoomId, logAuditTrail } from './roomService';
+import { AppError, ConfigurationError } from '@/lib/errors';
+import { checkRateLimit, createRateLimitKey } from '@/lib/security/rateLimiter';
+
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+export class VoteConflictError extends AppError {
   constructor(message: string) {
-    super(message);
+    super(message, 409, 'VOTE_CONFLICT');
     this.name = 'VoteConflictError';
   }
 }
 
-// In-Memory Rate Limiter for password brute-force prevention
-const FAILED_ATTEMPTS: Record<string, { count: number; lastTime: number }> = {};
-const MAX_ATTEMPTS = 5;
-const LOCKOUT_MS = 60000;
-
-function checkRateLimit(key: string): void {
-  const now = Date.now();
-  const record = FAILED_ATTEMPTS[key];
-  if (record && record.count >= MAX_ATTEMPTS) {
-    const elapsed = now - record.lastTime;
-    if (elapsed < LOCKOUT_MS) {
-      const remainingSec = Math.ceil((LOCKOUT_MS - elapsed) / 1000);
-      throw new Error(`비밀번호 연속 실패로 제한되었습니다. ${remainingSec}초 후 다시 시도해 주세요.`);
-    } else {
-      FAILED_ATTEMPTS[key] = { count: 0, lastTime: now };
-    }
-  }
+export function toPublicVote(vote: Vote): PublicVote {
+  return {
+    id: vote.id,
+    room_id: vote.room_id,
+    nickname: vote.nickname,
+    availability: vote.availability,
+    note: vote.note,
+    created_at: vote.created_at,
+    updated_at: vote.updated_at,
+  };
 }
 
-function recordFailedAttempt(key: string): void {
-  const now = Date.now();
-  const record = FAILED_ATTEMPTS[key] || { count: 0, lastTime: now };
-  FAILED_ATTEMPTS[key] = { count: record.count + 1, lastTime: now };
+function toOwnedVote(vote: Vote): OwnedVote {
+  return {
+    ...toPublicVote(vote),
+    vote_token: vote.vote_token,
+  };
 }
 
-function clearFailedAttempt(key: string): void {
-  delete FAILED_ATTEMPTS[key];
+function mapVoteRecord(data: Record<string, unknown>): Vote {
+  return {
+    id: String(data.id),
+    room_id: String(data.room_id),
+    vote_token: typeof data.vote_token === 'string' ? data.vote_token : null,
+    nickname: String(data.nickname || ''),
+    password_hash: typeof data.password_hash === 'string' ? data.password_hash : '',
+    availability:
+      data.availability && typeof data.availability === 'object'
+        ? (data.availability as Record<string, 'possible' | 'impossible' | 'maybe'>)
+        : {},
+    note: typeof data.note === 'string' ? data.note : '',
+    created_at: String(data.created_at || ''),
+    updated_at: String(data.updated_at || ''),
+    deleted_at: typeof data.deleted_at === 'string' ? data.deleted_at : null,
+  };
 }
 
 function generateVoteToken(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
+  if (!globalThis.crypto?.randomUUID) {
+    throw new AppError('안전한 투표 식별자를 생성할 수 없습니다.', 503, 'CRYPTO_UNAVAILABLE');
   }
-  return `vt-${Math.random().toString(36).substring(2, 11)}-${Date.now()}`;
+  return globalThis.crypto.randomUUID();
 }
 
-export async function getVotesByRoomId(roomId: string): Promise<Vote[]> {
-  if (!roomId) return [];
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
+}
 
-  // Resolve target room to determine actual DB Primary Key room.id
+function validateAvailability(room: Room, availability: Record<string, string>): void {
+  const keys = Object.keys(availability);
+  if (keys.length === 0) {
+    throw new AppError('최소 한 개 이상의 날짜 응답이 필요합니다.', 400, 'EMPTY_AVAILABILITY');
+  }
+
+  if (room.date_selection_mode === 'FREE') {
+    if (keys.length > 60 || keys.some((key) => !DATE_REGEX.test(key))) {
+      throw new AppError('자유 날짜 투표에는 올바른 날짜를 최대 60개까지 등록할 수 있습니다.', 400, 'INVALID_AVAILABILITY');
+    }
+    return;
+  }
+
+  const allowedKeys = new Set<string>();
+  for (const date of room.candidate_dates) {
+    if (room.schedule_type === 'date_time' && room.time_slots.length > 0) {
+      for (const timeSlot of room.time_slots) allowedKeys.add(`${date}_${timeSlot}`);
+    } else {
+      allowedKeys.add(date);
+    }
+  }
+
+  if (keys.length > allowedKeys.size || keys.some((key) => !allowedKeys.has(key))) {
+    throw new AppError('이 모임방의 후보 날짜와 시간대만 투표할 수 있습니다.', 400, 'INVALID_AVAILABILITY');
+  }
+}
+
+async function findExistingVote(roomId: string, nickname: string): Promise<Vote | null> {
+  if (!supabaseServer) throw new ConfigurationError();
+
+  const { data, error } = await supabaseServer
+    .from('votes')
+    .select('*')
+    .eq('room_id', roomId)
+    .ilike('nickname', escapeLikePattern(nickname))
+    .is('deleted_at', null)
+    .limit(2);
+  if (error) {
+    console.error('Supabase DB vote lookup failed:', error.message);
+    throw new AppError('투표 정보를 확인하지 못했습니다.', 503, 'DATABASE_ERROR');
+  }
+  if ((data || []).length > 1) {
+    throw new VoteConflictError('같은 닉네임의 투표가 여러 개 존재합니다. 다른 닉네임을 사용해 주세요.');
+  }
+  return data?.[0] ? mapVoteRecord(data[0]) : null;
+}
+
+async function authorizeVoteMutation(
+  roomId: string,
+  nickname: string,
+  existing: Vote,
+  voteToken: string,
+  password: string
+): Promise<{ tokenMatch: boolean; passwordMatch: boolean }> {
+  const limit = await checkRateLimit(
+    createRateLimitKey('vote-auth', `${roomId}:${nickname.toLocaleLowerCase('ko-KR')}`),
+    12,
+    60_000
+  );
+  if (!limit.allowed) {
+    throw new AppError('소유권 확인 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.', 429, 'RATE_LIMITED');
+  }
+
+  const tokenMatch = Boolean(
+    voteToken && existing.vote_token && timingSafeStringEqual(voteToken, existing.vote_token)
+  );
+  const passwordMatch = Boolean(
+    password && existing.password_hash && (await verifyPassword(password, existing.password_hash))
+  );
+
+  if (!tokenMatch && !passwordMatch) {
+    throw new AppError(
+      existing.password_hash
+        ? '투표 소유권 토큰 또는 PIN이 올바르지 않습니다.'
+        : '이전 투표의 소유권을 확인할 수 없습니다. 새 닉네임으로 투표해 주세요.',
+      403,
+      'VOTE_AUTH_FAILED'
+    );
+  }
+
+  return { tokenMatch, passwordMatch };
+}
+
+export async function getVotesByRoomId(roomId: string): Promise<PublicVote[]> {
+  if (!roomId.trim() || roomId.length > 100) return [];
+
   const targetRoom = await getRoomById(roomId);
-  const actualRoomId = targetRoom ? targetRoom.id : roomId;
+  if (!targetRoom) throw new AppError('존재하지 않는 약속 방입니다.', 404, 'ROOM_NOT_FOUND');
+  if (isDemoRoomId(targetRoom.id)) {
+    return getVotesByRoomIdMock(targetRoom.id).map(toPublicVote);
+  }
+  if (!supabaseServer) throw new ConfigurationError();
 
-  if (isSupabaseConfigured && supabaseServer) {
+  const { data, error } = await supabaseServer
+    .from('votes')
+    .select('id, room_id, nickname, availability, note, created_at, updated_at')
+    .eq('room_id', targetRoom.id)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.error('Supabase DB vote list failed:', error.message);
+    throw new AppError('투표 목록을 불러오지 못했습니다.', 503, 'DATABASE_ERROR');
+  }
+
+  return (data || []).map((vote) => toPublicVote(mapVoteRecord(vote)));
+}
+
+export async function submitVote(input: unknown): Promise<OwnedVote> {
+  const validated = SubmitVoteInputSchema.parse(input);
+  const targetRoom = await getRoomById(validated.room_id);
+  if (!targetRoom) throw new AppError('존재하지 않는 약속 방입니다.', 404, 'ROOM_NOT_FOUND');
+  if (isDemoRoomId(targetRoom.id) && process.env.NODE_ENV === 'production') {
+    throw new AppError('시연 모임방은 읽기 전용입니다.', 403, 'DEMO_READ_ONLY');
+  }
+  if (targetRoom.status !== 'OPEN') {
+    throw new AppError('이미 확정된 모임방에는 투표할 수 없습니다.', 409, 'ROOM_ALREADY_CONFIRMED');
+  }
+  validateAvailability(targetRoom, validated.availability);
+  if (!supabaseServer) throw new ConfigurationError();
+
+  const existing = await findExistingVote(targetRoom.id, validated.nickname);
+  if (existing) {
+    const authorization = await authorizeVoteMutation(
+      targetRoom.id,
+      validated.nickname,
+      existing,
+      validated.vote_token,
+      validated.password
+    );
+    const voteToken = existing.vote_token || generateVoteToken();
+    const passwordHash = validated.password
+      ? await createPasswordHash(validated.password)
+      : existing.password_hash;
+
     const { data, error } = await supabaseServer
       .from('votes')
-      .select('id, room_id, vote_token, nickname, availability, note, created_at, updated_at')
-      .eq('room_id', actualRoomId)
-      .is('deleted_at', null);
-
-    if (error) {
-      console.error('Supabase DB getVotesByRoomId error:', error.message);
-      throw new Error(`DB 투표 목록 조회 실패: ${error.message}`);
-    }
-
-    if (!data || data.length === 0) {
-      return [];
-    }
-
-    return data.map((v) => ({
-      id: v.id,
-      room_id: v.room_id,
-      vote_token: v.vote_token,
-      nickname: v.nickname,
-      password_hash: undefined,
-      availability: v.availability,
-      note: v.note,
-      created_at: v.created_at,
-      updated_at: v.updated_at,
-    }));
-  }
-
-  return getVotesByRoomIdMock(roomId);
-}
-
-export async function submitVote(input: SubmitVoteInput): Promise<Vote> {
-  const validated = SubmitVoteInputSchema.parse(input);
-
-  // 1. Resolve target room to obtain true PostgreSQL Primary Key UUID
-  const targetRoom = await getRoomById(validated.room_id);
-  if (!targetRoom) {
-    throw new Error('존재하지 않는 약속 방입니다.');
-  }
-
-  const actualRoomId = targetRoom.id; // PostgreSQL rooms.id (Primary Key UUID)
-  const attemptKey = `${actualRoomId}_${validated.nickname.toLowerCase()}`;
-  const hashedInputPw = validated.password ? await hashPassword(validated.password) : '';
-
-  if (isSupabaseConfigured && supabaseServer) {
-    const { data: existingVotes, error: searchError } = await supabaseServer
-      .from('votes')
+      .update({
+        vote_token: voteToken,
+        password_hash: passwordHash,
+        availability: validated.availability,
+        note: validated.note,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id)
       .select('*')
-      .eq('room_id', actualRoomId)
-      .ilike('nickname', validated.nickname)
-      .is('deleted_at', null);
-
-    if (searchError) {
-      console.error('Supabase DB vote search error:', searchError.message);
-      throw new Error(`DB 투표 조회 실패: ${searchError.message}`);
+      .single();
+    if (error || !data) {
+      console.error('Supabase DB vote update failed:', error?.message);
+      throw new AppError('투표를 수정하지 못했습니다.', 503, 'DATABASE_ERROR');
     }
 
-    const existing = existingVotes && existingVotes.length > 0 ? existingVotes[0] : null;
-
-    if (existing) {
-      checkRateLimit(attemptKey);
-
-      // Verify vote ownership via Token OR Password Hash
-      const tokenMatch = validated.vote_token && existing.vote_token && validated.vote_token === existing.vote_token;
-      const pwMatch = existing.password_hash && hashedInputPw && existing.password_hash === hashedInputPw;
-
-      if (existing.password_hash && !tokenMatch && !pwMatch) {
-        recordFailedAttempt(attemptKey);
-        throw new Error('비밀번호가 일치하지 않습니다. 본인의 닉네임과 설정한 비밀번호를 확인해 주세요.');
-      }
-
-      clearFailedAttempt(attemptKey);
-
-      const { data: updated, error: updateError } = await supabaseServer
-        .from('votes')
-        .update({
-          password_hash: hashedInputPw || existing.password_hash,
-          availability: validated.availability,
-          note: validated.note,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id)
-        .select()
-        .single();
-
-      if (updateError) {
-        console.error('Supabase DB vote update failed:', updateError.message);
-        throw new Error(`DB 투표 수정 실패: ${updateError.message}`);
-      }
-
-      logAuditTrail('VOTE_UPDATED', updated.id, { room_id: updated.room_id, nickname: updated.nickname });
-
-      return {
-        id: updated.id,
-        room_id: updated.room_id,
-        vote_token: updated.vote_token,
-        nickname: updated.nickname,
-        password_hash: undefined,
-        availability: updated.availability,
-        note: updated.note,
-        created_at: updated.created_at,
-        updated_at: updated.updated_at,
-      };
-    } else {
-      const voteToken = generateVoteToken();
-      const { data: inserted, error: insertError } = await supabaseServer
-        .from('votes')
-        .insert({
-          room_id: actualRoomId, // MUST USE PRIMARY KEY UUID TO SATISFY FOREIGN KEY CONSTRAINT!
-          vote_token: voteToken,
-          nickname: validated.nickname,
-          password_hash: hashedInputPw,
-          availability: validated.availability,
-          note: validated.note,
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error('Supabase DB vote insert error code:', insertError.code, insertError.message);
-        if (insertError.code === '23505' || insertError.message?.includes('unique_room_nickname') || insertError.message?.includes('duplicate key')) {
-          throw new VoteConflictError('이미 등록된 닉네임입니다. 본인의 닉네임인 경우 수정 비밀번호를 입력하시거나 다른 닉네임을 사용해 주세요.');
-        }
-        throw new Error(`DB 투표 저장 실패: ${insertError.message}`);
-      }
-
-      logAuditTrail('VOTE_CREATED', inserted.id, { room_id: inserted.room_id, nickname: inserted.nickname });
-
-      return {
-        id: inserted.id,
-        room_id: inserted.room_id,
-        vote_token: inserted.vote_token,
-        nickname: inserted.nickname,
-        password_hash: undefined,
-        availability: inserted.availability,
-        note: inserted.note,
-        created_at: inserted.created_at,
-        updated_at: inserted.updated_at,
-      };
-    }
+    await logAuditTrail('VOTE_UPDATED', data.id, {
+      room_id: data.room_id,
+      nickname: data.nickname,
+      authorization: authorization.tokenMatch ? 'token' : 'pin',
+    });
+    return toOwnedVote(mapVoteRecord(data));
   }
 
-  return submitVoteMock(input);
+  const voteToken = generateVoteToken();
+  const passwordHash = validated.password ? await createPasswordHash(validated.password) : '';
+  const { data, error } = await supabaseServer
+    .from('votes')
+    .insert({
+      room_id: targetRoom.id,
+      vote_token: voteToken,
+      nickname: validated.nickname,
+      password_hash: passwordHash,
+      availability: validated.availability,
+      note: validated.note,
+    })
+    .select('*')
+    .single();
+  if (error || !data) {
+    console.error('Supabase DB vote insert failed:', error?.code, error?.message);
+    if (error?.code === '23505') {
+      throw new VoteConflictError('이미 등록된 닉네임입니다. 본인의 투표라면 PIN을 입력해 주세요.');
+    }
+    throw new AppError('투표를 저장하지 못했습니다.', 503, 'DATABASE_ERROR');
+  }
+
+  await logAuditTrail('VOTE_CREATED', data.id, { room_id: data.room_id, nickname: data.nickname });
+  return toOwnedVote(mapVoteRecord(data));
 }
 
-export async function deleteVote(input: DeleteVoteInput): Promise<{ success: boolean }> {
+export async function deleteVote(input: unknown): Promise<{ success: boolean }> {
   const validated = DeleteVoteInputSchema.parse(input);
-
   const targetRoom = await getRoomById(validated.room_id);
-  if (!targetRoom) {
-    throw new Error('존재하지 않는 약속 방입니다.');
+  if (!targetRoom) throw new AppError('존재하지 않는 약속 방입니다.', 404, 'ROOM_NOT_FOUND');
+  if (isDemoRoomId(targetRoom.id) && process.env.NODE_ENV === 'production') {
+    throw new AppError('시연 모임방은 읽기 전용입니다.', 403, 'DEMO_READ_ONLY');
+  }
+  if (!supabaseServer) throw new ConfigurationError();
+
+  const existing = await findExistingVote(targetRoom.id, validated.nickname);
+  if (!existing) throw new AppError('투표를 찾을 수 없습니다.', 404, 'VOTE_NOT_FOUND');
+  await authorizeVoteMutation(
+    targetRoom.id,
+    validated.nickname,
+    existing,
+    validated.vote_token,
+    validated.password
+  );
+
+  const { error } = await supabaseServer
+    .from('votes')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', existing.id)
+    .is('deleted_at', null);
+  if (error) {
+    console.error('Supabase DB vote delete failed:', error.message);
+    throw new AppError('투표를 삭제하지 못했습니다.', 503, 'DATABASE_ERROR');
   }
 
-  const actualRoomId = targetRoom.id;
-  const attemptKey = `${actualRoomId}_${validated.nickname.toLowerCase()}`;
-  const hashedInputPw = validated.password ? await hashPassword(validated.password) : '';
-
-  if (isSupabaseConfigured && supabaseServer) {
-    const { data: existingVotes, error: searchError } = await supabaseServer
-      .from('votes')
-      .select('*')
-      .eq('room_id', actualRoomId)
-      .ilike('nickname', validated.nickname)
-      .is('deleted_at', null);
-
-    if (searchError) {
-      throw new Error(`DB 투표 조회 실패: ${searchError.message}`);
-    }
-
-    const existing = existingVotes && existingVotes.length > 0 ? existingVotes[0] : null;
-
-    if (!existing) {
-      throw new Error('닉네임 또는 PIN이 올바르지 않습니다.');
-    }
-
-    checkRateLimit(attemptKey);
-
-    const tokenMatch = validated.vote_token && existing.vote_token && validated.vote_token === existing.vote_token;
-    const pwMatch = existing.password_hash && hashedInputPw && existing.password_hash === hashedInputPw;
-
-    if (existing.password_hash && !tokenMatch && !pwMatch) {
-      recordFailedAttempt(attemptKey);
-      throw new Error('닉네임 또는 PIN이 올바르지 않습니다.');
-    }
-
-    clearFailedAttempt(attemptKey);
-
-    // Execute Soft Delete
-    const { error: deleteError } = await supabaseServer
-      .from('votes')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', existing.id);
-
-    if (deleteError) {
-      console.error('Supabase DB vote delete failed:', deleteError.message);
-      throw new Error(`DB 투표 삭제 실패: ${deleteError.message}`);
-    }
-
-    logAuditTrail('VOTE_DELETED', existing.id, { room_id: existing.room_id, nickname: existing.nickname });
-
-    return { success: true };
-  }
-
+  await logAuditTrail('VOTE_DELETED', existing.id, {
+    room_id: existing.room_id,
+    nickname: existing.nickname,
+  });
   return { success: true };
 }

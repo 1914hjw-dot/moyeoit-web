@@ -8,7 +8,7 @@ import { AdFitBanner } from '@/components/ads';
 import { HomeBelowTheFold } from '@/components/ui/HomeBelowTheFold';
 import { Footer } from '@/components/ui/Footer';
 import { ScheduleType, DateSelectionMode } from '@/types/schema';
-import { Sparkles, Calendar, ArrowRight, CheckCircle2, Globe, ThumbsUp, Share2 } from 'lucide-react';
+import { Sparkles, Calendar, ArrowRight, Globe } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
@@ -63,10 +63,10 @@ export default function HomePage() {
       const publicUrlId = data.room.legacy_slug || data.room.id;
 
       if (typeof window !== 'undefined') {
-        if (data.room.secret_hash) {
-          localStorage.setItem(`moyeoit_host_secret_${data.room.id}`, data.room.secret_hash);
+        if (data.room.host_secret) {
+          localStorage.setItem(`moyeoit_host_secret_${data.room.id}`, data.room.host_secret);
           if (data.room.legacy_slug) {
-            localStorage.setItem(`moyeoit_host_secret_${data.room.legacy_slug}`, data.room.secret_hash);
+            localStorage.setItem(`moyeoit_host_secret_${data.room.legacy_slug}`, data.room.host_secret);
           }
         }
         localStorage.setItem(`moyeoit_host_${data.room.id}`, 'true');
@@ -76,9 +76,9 @@ export default function HomePage() {
       }
 
       router.push(`/room/${publicUrlId}`);
-    } catch (err: any) {
-      console.error(err);
-      alert(err.message || '방 생성에 실패했습니다. 다시 시도해 주세요.');
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : '방 생성에 실패했습니다. 다시 시도해 주세요.');
       setIsSubmitting(false);
     }
   };

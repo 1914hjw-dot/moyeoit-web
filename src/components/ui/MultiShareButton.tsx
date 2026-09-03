@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Share2, Check, Copy, MessageCircle } from 'lucide-react';
+import { Share2, Check, Copy } from 'lucide-react';
 import { trackRoomShare } from '@/lib/gtag';
 
 interface MultiShareButtonProps {
@@ -28,9 +28,9 @@ export const MultiShareButton: React.FC<MultiShareButtonProps> = ({
 
   const handleShare = async () => {
     // 1. Try KakaoTalk Share if Kakao SDK is initialized
-    if (typeof window !== 'undefined' && (window as any).Kakao && (window as any).Kakao.Share) {
+    if (typeof window !== 'undefined' && window.Kakao?.Share) {
       try {
-        (window as any).Kakao.Share.sendDefault({
+        window.Kakao.Share.sendDefault({
           objectType: 'feed',
           content: {
             title: shareText,
@@ -68,7 +68,7 @@ export const MultiShareButton: React.FC<MultiShareButtonProps> = ({
         });
         trackRoomShare('web_share');
         return;
-      } catch (e) {
+      } catch {
         // User cancelled or share failed
       }
     }
