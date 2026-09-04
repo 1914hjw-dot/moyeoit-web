@@ -14,7 +14,7 @@ interface MultiShareButtonProps {
 
 export const MultiShareButton: React.FC<MultiShareButtonProps> = ({
   title,
-  description = '모여잇에서 친구들과 5초 만에 약속 날짜를 정해보세요!',
+  description = '모여잇에서 친구들과 가능한 약속 날짜를 함께 정해보세요.',
   url,
   confirmedDate,
   className = '',
@@ -43,7 +43,7 @@ export const MultiShareButton: React.FC<MultiShareButtonProps> = ({
           },
           buttons: [
             {
-              title: confirmedDate ? '확정 결과 확인하기' : '5초 만에 가능 날짜 투표하기',
+              title: confirmedDate ? '확정 결과 확인하기' : '가능 날짜 투표하기',
               link: {
                 mobileWebUrl: url,
                 webUrl: url,

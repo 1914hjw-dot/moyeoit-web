@@ -1,9 +1,7 @@
-'use client';
-
 import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, BookOpen, ArrowRight } from 'lucide-react';
-import { GUIDE_ARTICLES } from '@/components/ui/GuideSection';
+import { ArrowLeft, BookOpen, ArrowRight, CheckCircle2 } from '@/components/ui/GuideIcons';
+import { GUIDE_SUMMARIES } from '@/content/guide-catalog';
 import { Footer } from '@/components/ui/Footer';
 
 export default function GuideHubPage() {
@@ -37,13 +35,30 @@ export default function GuideHubPage() {
             모임 & 약속 조율 실전 가이드 센터
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-semibold leading-relaxed">
-            모임 성격에 맞는 최적의 약속 조율 팁과 카카오톡 공유 노하우를 한눈에 둘러보세요.
+            모여잇의 실제 기능 흐름을 바탕으로 후보 선정, 응답 수집, 결과 판단과 확정까지
+            단계별로 설명합니다.
           </p>
         </div>
 
+        <section className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 space-y-3">
+          <h2 className="text-sm font-black text-emerald-950">가이드 편집 원칙</h2>
+          <ul className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              '서비스 기능과 일반적인 운영 제안을 구분합니다.',
+              '근거 없는 효과 수치나 과장 표현을 쓰지 않습니다.',
+              '기능이 달라지면 본문과 수정일을 함께 갱신합니다.',
+            ].map((principle) => (
+              <li key={principle} className="flex items-start gap-2 text-xs text-emerald-900 leading-5">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>{principle}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         {/* Guide Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {GUIDE_ARTICLES.map((article) => {
+          {GUIDE_SUMMARIES.map((article) => {
             return (
               <Link
                 key={article.slug}
@@ -68,7 +83,9 @@ export default function GuideHubPage() {
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs">
-                  <span className="text-[10px] text-slate-400 font-semibold">{article.date}</span>
+                  <span className="text-[10px] text-slate-400 font-semibold">
+                    {article.updatedAt} 업데이트
+                  </span>
                   <span className="flex items-center gap-1 font-extrabold text-indigo-600 group-hover:translate-x-0.5 transition-transform">
                     <span>가이드 전문 읽기</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -83,7 +100,7 @@ export default function GuideHubPage() {
         <div className="p-5 rounded-2xl bg-slate-900 text-white space-y-2 text-center">
           <h3 className="text-sm font-black">새로운 모임 방을 만들 준비가 되셨나요?</h3>
           <p className="text-xs text-slate-300">
-            가이드를 바탕으로 단 10초 만에 모임 방을 만들고 친구들에게 초대 링크를 공유해보세요.
+            가이드의 기준을 적용해 후보 날짜를 정하고 친구들에게 초대 링크를 공유해보세요.
           </p>
           <div className="pt-2">
             <Link

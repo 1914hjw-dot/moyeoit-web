@@ -16,8 +16,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: '모여잇 | 친구들과 모임 약속 날짜 정하기 5초 조율기',
-  description: '회원가입 없이 친구들과 모임 약속 날짜를 빠르게 정해보세요. 카카오톡 단톡방에 링크 하나로 조율하고 전원 참석 가능한 최적의 날짜를 10초 만에 찾아드립니다.',
+  title: '모여잇 | 친구들과 모임 약속 날짜 정하기',
+  description: '회원가입 없이 친구들과 모임 약속 날짜를 정해보세요. 카카오톡 단톡방에 링크를 공유하고 가능한 날짜를 모아 참석하기 좋은 후보를 확인할 수 있습니다.',
   keywords: [
     '약속 날짜 정하기',
     '모임 날짜 정하기',
@@ -55,13 +55,13 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: '모여잇 | 친구들과 모임 약속 날짜 정하기 5초 조율기',
+    title: '모여잇 | 친구들과 모임 약속 날짜 정하기',
     description: '회원가입 없이 친구들과 모임 약속 날짜를 빠르게 정해보세요. 카카오톡 단톡방에 링크 하나로 가능 날짜를 투표하고 최적의 약속 날짜를 자동 계산합니다.',
     url: SITE_URL,
     siteName: '모여잇 (Moyeoit)',
     images: [
       {
-        url: `${SITE_URL}/api/og?title=${encodeURIComponent('친구들과 약속 날짜, 모여잇으로 10초 만에 정해요!')}`,
+        url: `${SITE_URL}/api/og?title=${encodeURIComponent('친구들과 약속 날짜, 모여잇으로 함께 정해요')}`,
         width: 1200,
         height: 630,
         alt: '모여잇 모임 약속 날짜 조율기',
@@ -72,7 +72,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: '모여잇 | 친구들과 모임 약속 날짜 정하기 5초 조율기',
+    title: '모여잇 | 친구들과 모임 약속 날짜 정하기',
     description: '회원가입 없이 친구들과 모임 약속 날짜를 빠르게 정해보세요.',
     images: [`${SITE_URL}/api/og?title=${encodeURIComponent('모여잇 모임 약속 날짜 조율기')}`],
   },
@@ -105,7 +105,7 @@ export default function RootLayout({
       price: '0',
       priceCurrency: 'KRW',
     },
-    description: '로그인 0초, 비회원 모임 약속 날짜 5초 조율 서비스',
+    description: '회원가입 없이 링크로 참여하는 모임 약속 날짜 조율 서비스',
   };
 
   return (

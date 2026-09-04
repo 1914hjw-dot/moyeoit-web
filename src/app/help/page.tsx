@@ -68,7 +68,7 @@ export default function HelpPage() {
           <div className="space-y-2 text-xs sm:text-sm text-slate-600 leading-relaxed pl-2 border-l-2 border-indigo-200">
             <p>① 생성된 약속방 상단의 [초대 링크 복사 & 공유하기] 버튼을 누릅니다.</p>
             <p>② 모여잇은 <strong>KakaoTalk SDK ➔ Web Share API ➔ Clipboard ➔ 수동 URL 모달</strong> 4단계 자동 복구 공유 엔진을 지원합니다.</p>
-            <p>③ 링크를 클릭한 친구들은 로그인 없이 닉네임만 입력하고 5초 만에 투표할 수 있습니다.</p>
+            <p>③ 링크를 클릭한 친구들은 로그인 없이 닉네임을 입력하고 가능한 날짜에 투표할 수 있습니다.</p>
           </div>
         </section>
 

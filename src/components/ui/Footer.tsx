@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { Calendar, ShieldCheck, FileText, HelpCircle, BookOpen, Mail, Info } from 'lucide-react';
@@ -14,11 +16,11 @@ export const Footer: React.FC = () => {
             </div>
             <div>
               <p className="font-black text-slate-900 text-xs">모여잇 (Moyeoit)</p>
-              <p className="text-[11px] text-slate-400">로그인 0초 • 5초 약속 날짜 조율기</p>
+              <p className="text-[11px] text-slate-400">회원가입 없는 약속 날짜 조율</p>
             </div>
           </div>
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            회원가입 없이 단톡방 초대 링크 하나로 친구들과 전원 참석 가능한 최적의 약속 날짜를 10초 만에 도출하는 비회원 일정 조율 플랫폼입니다.
+            회원가입 없이 단톡방 초대 링크로 가능한 날짜를 모으고 참석하기 좋은 후보를 비교하는 비회원 일정 조율 서비스입니다.
           </p>
         </div>
 

@@ -107,7 +107,7 @@ export const EmptyVoteState: React.FC<{ onStartVote: () => void }> = ({ onStartV
       onClick={onStartVote}
       className="sys-btn-primary text-xs font-black px-4 py-2 shadow-md shadow-indigo-500/20"
     >
-      ⚡ 10초 투표 시작하기
+      ⚡ 가능 날짜 투표 시작하기
     </button>
   </div>
 );

@@ -1,12 +1,1 @@
-# ============================================================================
-# Moyeoit (모여잇) Official ads.txt File
-# Reference: Google AdSense Authorized Digital Sellers & Kakao AdFit Specification
-# ============================================================================
-#
-# ============================================================================
-
-# Google AdSense
 google.com, pub-3199026813976563, DIRECT, f08c47fec0942fa0
-
-# Kakao AdFit
-kakaocorp.com, KakaoAdFit, DIRECT

@@ -33,7 +33,7 @@ export const GoldenDateCard: React.FC<GoldenDateCardProps> = ({
         <div className="space-y-1">
           <h4 className="text-sm font-extrabold text-slate-900">아직 다른 참여자의 응답이 없어요</h4>
           <p className="text-xs text-slate-500">
-            친구들에게 링크를 공유하면 전원 참석 가능한 황금 날짜를 10초 만에 찾아드려요!
+            친구들에게 링크를 공유하고 모두가 가능한 날짜를 함께 찾아보세요.
           </p>
         </div>
         {onShare && (

@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const title = searchParams.get('title') || '약속 날짜 조율하기';
-    const type = searchParams.get('type') || '모여잇 • 5초 약속 날짜 조율기';
+    const type = searchParams.get('type') || '모여잇 • 약속 날짜 조율';
 
     return new ImageResponse(
       (
@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
                 fontWeight: '600',
               }}
             >
-              회원가입 0초! 단톡방 친구들과 가능 날짜를 한눈에 투표해보세요.
+              회원가입 없이 단톡방 친구들과 가능한 날짜를 한눈에 모아보세요.
             </span>
           </div>
 
@@ -122,7 +122,7 @@ export async function GET(req: NextRequest) {
                 border: '1px solid #a7f3d0',
               }}
             >
-              ✓ 10초 만에 모임 약속 날짜 찾기
+              ✓ 함께 가능한 모임 약속 날짜 찾기
             </div>
 
             <span

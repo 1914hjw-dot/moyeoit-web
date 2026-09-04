@@ -10,5 +10,4 @@ interface KakaoSdk {
 
 interface Window {
   Kakao?: KakaoSdk;
-  adsbygoogle?: Array<Record<string, unknown>>;
 }

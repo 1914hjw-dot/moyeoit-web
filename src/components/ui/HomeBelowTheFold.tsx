@@ -24,7 +24,7 @@ export const HomeBelowTheFold: React.FC = () => {
             우리는 동아리 정기 스터디, 친구들과의 주말 약속, 회사 팀 회식 날짜를 정할 때마다 <strong>카카오톡 단톡방에서 무수한 메시지와 끝없는 대화</strong>를 나누어야 했습니다. 단톡방 투표 기능을 사용하더라도 일일이 선택해야 하고, 여러 날짜 중 전원이 가능한 최고의 황금 날짜를 한눈에 계산하기 어려웠습니다.
           </p>
           <p>
-            <strong>모여잇(Moyeoit)</strong>은 복잡한 회원가입, 비번 기억, 앱 다운로드 없이 <strong>단 10초 만에 초대 링크 하나로 전원 참석 가능한 최고의 날짜를 찾아주는 비회원 약속 조율 서비스</strong>입니다.
+            <strong>모여잇(Moyeoit)</strong>은 복잡한 회원가입, 비밀번호 기억, 앱 다운로드 없이 <strong>초대 링크 하나로 참여자의 가능 날짜를 모으고 참석하기 좋은 후보를 비교하는 비회원 약속 조율 서비스</strong>입니다.
           </p>
         </div>
 
@@ -32,7 +32,7 @@ export const HomeBelowTheFold: React.FC = () => {
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
             <span className="text-xs font-black text-slate-900 flex items-center gap-1">
               <Zap className="w-4 h-4 text-amber-500" />
-              <span>로그인 0초</span>
+              <span>회원가입 없이 참여</span>
             </span>
             <p className="text-[11px] text-slate-500">회원가입 없이 누구나 즉시 투표 참여 가능</p>
           </div>
@@ -50,7 +50,7 @@ export const HomeBelowTheFold: React.FC = () => {
               <ShieldCheck className="w-4 h-4 text-indigo-600" />
               <span>개인정보 최소 수집</span>
             </span>
-            <p className="text-[11px] text-slate-500">90일 후 데이터 완벽 파기로 안심 사용</p>
+            <p className="text-[11px] text-slate-500">생성 90일 후 모임방과 투표 데이터 자동 삭제</p>
           </div>
         </div>
       </section>
@@ -68,7 +68,7 @@ export const HomeBelowTheFold: React.FC = () => {
             약속 날짜 조율 4단계 프로세스
           </h2>
           <p className="text-xs text-slate-500">
-            누구나 10초 만에 쉽게 사용할 수 있는 자연스러운 흐름입니다.
+            후보 등록부터 결과 확정까지 한 흐름으로 이어집니다.
           </p>
         </div>
 
@@ -97,7 +97,7 @@ export const HomeBelowTheFold: React.FC = () => {
             <span className="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-black">
               3
             </span>
-            <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">참여자 5초 가능 날짜 선택</h3>
+            <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">참여자의 가능 날짜 선택</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
               링크를 받은 친구들은 로그인 없이 닉네임만 입력하고 안 되는 날짜를 해제합니다.
             </p>

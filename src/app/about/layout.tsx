@@ -10,8 +10,8 @@ export const metadata: Metadata = {
     canonical: `${SITE_URL}/about`,
   },
   openGraph: {
-    title: '모여잇 서비스 소개 | 5초 비회원 약속 날짜 조율기',
-    description: '회원가입 0초, 단톡방 친구들과 약속 날짜를 가장 쉽고 정확하게 맞추는 모여잇의 이야기.',
+    title: '모여잇 서비스 소개 | 비회원 약속 날짜 조율',
+    description: '회원가입 없이 단톡방 친구들과 가능한 날짜를 모으고 약속을 확정하는 모여잇의 이야기.',
     url: `${SITE_URL}/about`,
   },
 };

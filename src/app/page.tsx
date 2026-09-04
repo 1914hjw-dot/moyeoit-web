@@ -118,11 +118,11 @@ export default function HomePage() {
         <section className="text-center space-y-2.5 pt-2 pb-1">
           <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-extrabold text-slate-700 shadow-sm">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>회원가입 0초 • 단톡방 링크 1초 공유</span>
+            <span>회원가입 없이 • 단톡방 링크로 공유</span>
           </div>
 
           <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-slate-900">
-            친구들과 약속 날짜, 10초 만에 조율하고 확정해요.
+            친구들과 가능한 날짜를 모아 약속을 확정해요.
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
             방장이 날짜를 지정하거나 참여자가 자유롭게 선택하는 2가지 모드 지원! 전원 참석 가능한 황금 날짜를 자동 계산하고 최종 모임 일정을 확정해 드립니다.
@@ -225,9 +225,6 @@ export default function HomePage() {
           </form>
         </section>
 
-        {/* Kakao AdFit Banner (Placed directly below Room Creation Section) */}
-        <AdFitBanner />
-
         {/* Core 6-Step Workflow Section */}
         <section className="space-y-3 pt-2">
           <div className="text-center space-y-0.5">
@@ -238,20 +235,20 @@ export default function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
               <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center text-xs font-black">01</span>
-              <h4 className="text-xs font-black text-slate-900">10초 방 만들기</h4>
+              <h4 className="text-xs font-black text-slate-900">간단한 방 만들기</h4>
               <p className="text-[11px] text-slate-500 leading-relaxed">로그인 없이 방 제목과 날짜 방식을 지정합니다.</p>
             </div>
 
             <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
               <span className="w-6 h-6 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center text-xs font-black">02</span>
-              <h4 className="text-xs font-black text-slate-900">1초 링크 공유</h4>
+              <h4 className="text-xs font-black text-slate-900">초대 링크 공유</h4>
               <p className="text-[11px] text-slate-500 leading-relaxed">카카오톡 단톡방이나 메시지로 링크를 배포합니다.</p>
             </div>
 
             <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
               <span className="w-6 h-6 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center text-xs font-black">03</span>
               <h4 className="text-xs font-black text-slate-900">가능 날짜 투표</h4>
-              <p className="text-[11px] text-slate-500 leading-relaxed">참여자가 본인 닉네임으로 5초 만에 응답합니다.</p>
+              <p className="text-[11px] text-slate-500 leading-relaxed">참여자가 본인 닉네임으로 가능한 날짜에 응답합니다.</p>
             </div>
 
             <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
@@ -310,6 +307,9 @@ export default function HomePage() {
 
         {/* Rich Below-the-Fold Content & FAQ */}
         <HomeBelowTheFold />
+
+        {/* Paid promotion stays after the site's own tools and editorial content. */}
+        <AdFitBanner />
       </div>
 
       <Footer />

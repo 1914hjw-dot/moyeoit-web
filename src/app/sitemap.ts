@@ -1,64 +1,58 @@
 import { MetadataRoute } from 'next';
+import { GUIDE_SUMMARIES } from '@/content/guide-catalog';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://moyeoit-web.vercel.app';
+const SITE_UPDATED_AT = '2026-09-03';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const guideSlugs = [
-    'fast-date-picker',
-    'company-dinner',
-    'travel-planning',
-    'study-group',
-    'kakao-share-guide',
-  ];
-
-  const guideRoutes: MetadataRoute.Sitemap = guideSlugs.map((slug) => ({
-    url: `${SITE_URL}/guide/${slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly',
+  const guideRoutes: MetadataRoute.Sitemap = GUIDE_SUMMARIES.map((article) => ({
+    url: `${SITE_URL}/guide/${article.slug}`,
+    lastModified: article.updatedAt,
+    changeFrequency: 'monthly',
     priority: 0.7,
   }));
 
   return [
     {
       url: SITE_URL,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
+      lastModified: SITE_UPDATED_AT,
+      changeFrequency: 'weekly',
       priority: 1.0,
     },
     {
       url: `${SITE_URL}/about`,
-      lastModified: new Date(),
+      lastModified: SITE_UPDATED_AT,
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/help`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
+      lastModified: SITE_UPDATED_AT,
+      changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/guide`,
-      lastModified: new Date(),
+      lastModified: SITE_UPDATED_AT,
       changeFrequency: 'weekly',
       priority: 0.8,
     },
     ...guideRoutes,
     {
       url: `${SITE_URL}/contact`,
-      lastModified: new Date(),
+      lastModified: SITE_UPDATED_AT,
       changeFrequency: 'monthly',
       priority: 0.5,
     },
     {
       url: `${SITE_URL}/privacy`,
-      lastModified: new Date(),
+      lastModified: SITE_UPDATED_AT,
       changeFrequency: 'monthly',
       priority: 0.3,
     },
     {
       url: `${SITE_URL}/terms`,
-      lastModified: new Date(),
+      lastModified: SITE_UPDATED_AT,
       changeFrequency: 'monthly',
       priority: 0.3,
     },

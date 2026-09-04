@@ -68,7 +68,7 @@ export const FeatureSection: React.FC = () => {
             Core Features
           </span>
           <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-            모여잇이 제공하는 4가지 혁신적 기능
+            모여잇이 제공하는 4가지 핵심 기능
           </h2>
           <p className="text-xs text-slate-500">
             사용자 경험(UX)을 가장 최우선으로 설계한 모여잇의 차별점입니다.
@@ -81,9 +81,9 @@ export const FeatureSection: React.FC = () => {
               <Zap className="w-4 h-4" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">로그인 0초 • 비회원 즉시 사용</h3>
+              <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">회원가입 없이 바로 사용</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                아이디 생성, 소셜 로그인, 앱 설치 등의 번거로운 진입 장벽을 모두 제거하여 링크 접속 후 5초 만에 투표할 수 있습니다.
+                아이디 생성, 소셜 로그인, 앱 설치 없이 초대 링크에서 닉네임으로 투표할 수 있습니다.
               </p>
             </div>
           </div>
@@ -119,7 +119,7 @@ export const FeatureSection: React.FC = () => {
             <div className="space-y-1">
               <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">개인정보 최소 수집 원칙 (90일 파기)</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                주민번호나 전화번호 등 불필요한 개인정보를 전혀 요구하지 않으며, 모임방 데이터는 생성 90일 후 완전 자동 파기됩니다.
+                주민번호나 전화번호 등 불필요한 개인정보를 요구하지 않으며, 모임방 데이터는 생성 90일 후 자동 삭제됩니다.
               </p>
             </div>
           </div>

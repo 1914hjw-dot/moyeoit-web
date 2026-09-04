@@ -31,7 +31,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ room, onClose }) => {
       navigator
         .share({
           title: `📅 ${room.title}`,
-          text: `[모여잇] ${room.title} 모임 날짜 조율 투표에 참여해 주세요! (로그인 0초, 10초 만에 완료)`,
+          text: `[모여잇] ${room.title} 모임의 가능한 날짜 투표에 참여해 주세요. 회원가입 없이 응답할 수 있어요.`,
           url: shareUrl,
         })
         .then(() => trackRoomShare('web_share'))
@@ -51,10 +51,10 @@ export const ShareModal: React.FC<ShareModalProps> = ({ room, onClose }) => {
           </div>
           <div>
             <h3 className="text-sm sm:text-base font-extrabold text-zinc-100">
-              1초 만에 초대 링크 공유하기
+              초대 링크 공유하기
             </h3>
             <p className="text-xs text-zinc-400">
-              이 링크를 단톡방에 공유하면 친구들이 10초 만에 가능 날짜를 투표합니다.
+              이 링크를 단톡방에 공유하면 친구들이 가능한 날짜에 응답할 수 있습니다.
             </p>
           </div>
         </div>
@@ -93,10 +93,10 @@ export const ShareModal: React.FC<ShareModalProps> = ({ room, onClose }) => {
             <span>📅 {room.title}</span>
           </div>
           <p className="text-[11px] text-zinc-400">
-            {room.description || '로그인 0초, 10초 만에 가능 날짜를 투표해 주세요!'}
+            {room.description || '회원가입 없이 가능한 날짜에 투표해 주세요.'}
           </p>
           <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between text-[10px] text-amber-400 font-bold">
-            <span>Moyeoit • 5초 날짜 조율기</span>
+            <span>Moyeoit • 약속 날짜 조율</span>
             <span className="flex items-center gap-0.5">
               <span>투표하러 가기</span>
               <Send className="w-3 h-3" />
