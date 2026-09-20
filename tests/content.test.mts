@@ -42,6 +42,32 @@ test('ads.txt contains a single valid Google publisher entry', async () => {
   assert.match(ads.trim(), /^google\.com, pub-\d{16}, DIRECT, f08c47fec0942fa0$/);
 });
 
+test('robots.txt disallows /admin and /api routes', async () => {
+  const { default: robots } = await import('../src/app/robots.ts');
+  const result = robots();
+  const rules = Array.isArray(result.rules) ? result.rules : [result.rules];
+  const disallow = rules.flatMap((r) => (Array.isArray(r.disallow) ? r.disallow : [r.disallow]));
+
+  assert.ok(disallow.includes('/admin/'), 'robots.txt should disallow /admin/');
+  assert.ok(disallow.includes('/admin'), 'robots.txt should disallow /admin');
+  assert.ok(disallow.includes('/api/'), 'robots.txt should disallow /api/');
+});
+
+test('admin layout metadata, dynamic rendering, and proxy enforce noindex, no-cache, and force-dynamic', async () => {
+  const layoutContent = await readFile(new URL('../src/app/admin/layout.tsx', import.meta.url), 'utf8');
+  assert.match(layoutContent, /index:\s*false/);
+  assert.match(layoutContent, /follow:\s*false/);
+  assert.match(layoutContent, /dynamic\s*=\s*['"]force-dynamic['"]/);
+  assert.match(layoutContent, /revalidate\s*=\s*0/);
+
+  const proxyContent = await readFile(new URL('../src/proxy.ts', import.meta.url), 'utf8');
+  assert.match(proxyContent, /X-Robots-Tag['"]?,\s*['"]noindex,\s*nofollow['"]/);
+  assert.match(proxyContent, /secure:\s*isProduction/);
+
+  const authServerContent = await readFile(new URL('../src/lib/supabase/adminAuthServer.ts', import.meta.url), 'utf8');
+  assert.match(authServerContent, /secure:\s*isProduction/);
+});
+
 const baseUrl = process.env.CONTENT_TEST_BASE_URL;
 
 test('rendered content, metadata and ad exclusions', { skip: !baseUrl }, async (t) => {

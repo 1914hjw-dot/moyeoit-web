@@ -20,8 +20,14 @@ export async function proxy(request: NextRequest) {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const isProduction = process.env.NODE_ENV === 'production';
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookieOptions: {
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+    },
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -32,7 +38,10 @@ export async function proxy(request: NextRequest) {
           request,
         });
         cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
+          supabaseResponse.cookies.set(name, value, {
+            ...options,
+            ...(isProduction ? { secure: true } : {}),
+          })
         );
         if (headers) {
           Object.entries(headers).forEach(([key, value]) => {
@@ -50,6 +59,9 @@ export async function proxy(request: NextRequest) {
   supabaseResponse.headers.set('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0');
   supabaseResponse.headers.set('Pragma', 'no-cache');
   supabaseResponse.headers.set('Expires', '0');
+
+  // Enforce search engine noindex on all admin routes
+  supabaseResponse.headers.set('X-Robots-Tag', 'noindex, nofollow');
 
   return supabaseResponse;
 }

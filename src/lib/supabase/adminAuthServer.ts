@@ -13,7 +13,14 @@ export async function createAdminAuthClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
+  const isProduction = process.env.NODE_ENV === 'production';
+
   return createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookieOptions: {
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -21,7 +28,10 @@ export async function createAdminAuthClient() {
       setAll(cookiesToSet) {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
+            cookieStore.set(name, value, {
+              ...options,
+              ...(isProduction ? { secure: true } : {}),
+            })
           );
         } catch {
           // The `setAll` method was called from a Server Component.
