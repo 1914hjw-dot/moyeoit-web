@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck, Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
 
@@ -10,6 +10,28 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // If already logged in, redirect directly to admin console
+  useEffect(() => {
+    let ignore = false;
+    async function checkSession() {
+      try {
+        const res = await fetch('/api/admin/auth/session');
+        if (res.ok) {
+          const data = await res.json();
+          if (!ignore && data.authenticated) {
+            router.replace('/admin/feedback');
+          }
+        }
+      } catch {
+        // Not authenticated or network error; stay on login page
+      }
+    }
+    void checkSession();
+    return () => {
+      ignore = true;
+    };
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +55,7 @@ export default function AdminLoginPage() {
         throw new Error(data.error || '이메일 또는 비밀번호가 올바르지 않습니다.');
       }
 
-      router.push('/admin');
+      router.push('/admin/feedback');
       router.refresh();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : '로그인에 실패했습니다.');

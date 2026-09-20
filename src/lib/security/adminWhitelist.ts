@@ -8,7 +8,7 @@ export function isEmailInAdminWhitelist(email: string | undefined | null): boole
   const rawAdminEmails = process.env.ADMIN_EMAILS || '';
   const adminEmails = rawAdminEmails
     .split(',')
-    .map((e) => e.trim().toLowerCase())
+    .map((e) => e.trim().toLowerCase().replace(/^["']|["']$/g, ''))
     .filter(Boolean);
 
   return adminEmails.includes(normalizedEmail);

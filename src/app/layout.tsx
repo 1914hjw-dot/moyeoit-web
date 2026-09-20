@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
+import { FloatingFeedbackButton } from '@/components/ui/FloatingFeedbackButton';
 import './globals.css';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://moyeoit-web.vercel.app';
@@ -137,6 +138,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased selection:bg-indigo-500/20 selection:text-indigo-900 min-h-screen overflow-x-hidden pb-[env(safe-area-inset-bottom)]">
         {children}
+        <FloatingFeedbackButton />
       </body>
     </html>
   );

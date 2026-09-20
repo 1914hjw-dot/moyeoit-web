@@ -109,12 +109,13 @@ test('notice validation enforces title length, non-empty content and booleans', 
   assert.equal(updateNotice.success, true);
 });
 
-test('admin whitelist correctly evaluates configured admin emails', () => {
-  process.env.ADMIN_EMAILS = 'admin@moyeoit.com, owner@moyeoit.com ';
+test('admin whitelist correctly evaluates configured admin emails and strips quotes', () => {
+  process.env.ADMIN_EMAILS = ' "admin@moyeoit.com" , \'owner@moyeoit.com\', tech@moyeoit.com ';
 
   assert.equal(isEmailInAdminWhitelist('admin@moyeoit.com'), true);
   assert.equal(isEmailInAdminWhitelist('ADMIN@moyeoit.com'), true);
   assert.equal(isEmailInAdminWhitelist(' owner@moyeoit.com '), true);
+  assert.equal(isEmailInAdminWhitelist('tech@moyeoit.com'), true);
   assert.equal(isEmailInAdminWhitelist('stranger@other.com'), false);
   assert.equal(isEmailInAdminWhitelist(undefined), false);
   assert.equal(isEmailInAdminWhitelist(''), false);
