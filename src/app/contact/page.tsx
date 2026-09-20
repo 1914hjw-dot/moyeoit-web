@@ -1,11 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Mail, ShieldCheck, Bug, MessageSquare, CheckCircle2, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Mail, ShieldCheck, Bug, MessageSquare, CheckCircle2, ArrowRight, PenSquare } from 'lucide-react';
 import { Footer } from '@/components/ui/Footer';
+import { FeedbackSheet } from '@/components/ui/FeedbackSheet';
 
 export default function ContactPage() {
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
   return (
     <main className="min-h-screen max-w-4xl mx-auto px-4 py-6 space-y-8">
       {/* Header Navigation */}
@@ -27,7 +30,7 @@ export default function ContactPage() {
 
       {/* Main Content Article */}
       <article className="sys-card p-6 sm:p-10 space-y-8 bg-white border-slate-200/80 shadow-xl shadow-slate-200/50 rounded-3xl">
-        <div className="space-y-3 pb-6 border-b border-slate-100">
+        <div className="space-y-4 pb-6 border-b border-slate-100">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-extrabold shadow-xs">
             <Mail className="w-4 h-4 text-slate-800" />
             <span>Contact & Support</span>
@@ -36,8 +39,19 @@ export default function ContactPage() {
             모여잇 고객지원 및 문의하기
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 font-semibold leading-relaxed">
-            서비스 이용 관련 불편사항, 개인정보 관련 문의 및 삭제 요청, 제휴 및 버그 제보는 공식 문의 메일로 연락해 주세요.
+            서비스 이용 관련 불편사항, 개인정보 관련 문의 및 삭제 요청, 제휴 및 버그 제보는 공식 문의 메일로 연락해 주시거나, 아래 버튼을 눌러 온라인으로 즉시 문의를 남기실 수 있습니다.
           </p>
+
+          <div>
+            <button
+              type="button"
+              onClick={() => setIsSheetOpen(true)}
+              className="sys-btn-primary px-5 h-11 text-xs font-black flex items-center gap-2 cursor-pointer shadow-md"
+            >
+              <PenSquare className="w-4 h-4 text-white" />
+              <span>웹에서 바로 문의 작성하기</span>
+            </button>
+          </div>
         </div>
 
         {/* Contact Channels Grid */}
@@ -132,6 +146,11 @@ export default function ContactPage() {
           </Link>
         </div>
       </article>
+
+      <FeedbackSheet
+        isOpen={isSheetOpen}
+        onClose={() => setIsSheetOpen(false)}
+      />
 
       <Footer />
     </main>

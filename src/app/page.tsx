@@ -7,6 +7,7 @@ import { trackRoomCreateStart, trackRoomCreated } from '@/lib/gtag';
 import { AdFitBanner } from '@/components/ads';
 import { HomeBelowTheFold } from '@/components/ui/HomeBelowTheFold';
 import { Footer } from '@/components/ui/Footer';
+import { NoticeBanner } from '@/components/ui/NoticeBanner';
 import { ScheduleType, DateSelectionMode } from '@/types/schema';
 import { Sparkles, Calendar, ArrowRight, Globe } from 'lucide-react';
 
@@ -113,6 +114,9 @@ export default function HomePage() {
             </button>
           </div>
         </header>
+
+        {/* Unobtrusive Pinned Notice Banner (Failure-isolated) */}
+        <NoticeBanner />
 
         {/* Compact Hero Section */}
         <section className="text-center space-y-2.5 pt-2 pb-1">

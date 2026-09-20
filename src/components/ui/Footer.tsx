@@ -1,10 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Calendar, ShieldCheck, FileText, HelpCircle, BookOpen, Mail, Info } from 'lucide-react';
+import { Calendar, ShieldCheck, FileText, HelpCircle, BookOpen, Mail, Info, Bell } from 'lucide-react';
+import { FeedbackSheet } from '@/components/ui/FeedbackSheet';
 
 export const Footer: React.FC = () => {
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+
   return (
     <footer className="w-full mt-16 py-10 px-4 border-t border-slate-200/80 bg-white text-slate-500 text-xs space-y-6">
       <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-start justify-between gap-6">
@@ -39,6 +42,12 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link href="/notices" className="hover:text-slate-900 transition-colors flex items-center gap-1">
+                  <Bell className="w-3.5 h-3.5 text-slate-400" />
+                  <span>공지사항</span>
+                </Link>
+              </li>
+              <li>
                 <Link href="/help" className="hover:text-slate-900 transition-colors flex items-center gap-1">
                   <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
                   <span>이용 도움말</span>
@@ -60,10 +69,14 @@ export const Footer: React.FC = () => {
             </p>
             <ul className="space-y-1.5 text-slate-600">
               <li>
-                <Link href="/contact" className="hover:text-slate-900 transition-colors flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setIsFeedbackOpen(true)}
+                  className="hover:text-slate-900 transition-colors flex items-center gap-1 cursor-pointer text-left"
+                >
                   <Mail className="w-3.5 h-3.5 text-slate-400" />
                   <span>문의하기</span>
-                </Link>
+                </button>
               </li>
               <li>
                 <Link href="/privacy" className="hover:text-slate-900 transition-colors flex items-center gap-1">
@@ -110,6 +123,11 @@ export const Footer: React.FC = () => {
         <p>© 2026 모여잇 (Moyeoit). All rights reserved.</p>
         <p>비회원으로 빠르게 이용할 수 있는 심플한 날짜 조율 서비스입니다.</p>
       </div>
+
+      <FeedbackSheet
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
+      />
     </footer>
   );
 };
