@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminSession } from '@/lib/security/adminAuth';
 import { getAdminFeedbacks } from '@/lib/services/feedbackService';
-import { errorResponse } from '@/lib/http/api';
+import { errorResponse, adminJsonResponse, ADMIN_NO_CACHE_HEADERS } from '@/lib/http/api';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -15,12 +15,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const result = await getAdminFeedbacks({ status, category, page, limit });
 
-    return NextResponse.json({
+    return adminJsonResponse({
       success: true,
       feedbacks: result.feedbacks,
       totalCount: result.totalCount,
     });
   } catch (error) {
-    return errorResponse(error, '문의 목록을 불러올 수 없습니다.');
+    return errorResponse(error, '문의 목록을 불러올 수 없습니다.', ADMIN_NO_CACHE_HEADERS);
   }
 }

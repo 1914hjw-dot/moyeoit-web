@@ -54,8 +54,17 @@ export default function AdminFeedbackPage() {
         if (categoryFilter !== 'ALL') params.set('category', categoryFilter);
 
         const res = await fetch(`/api/admin/feedback?${params.toString()}`);
-        if (res.status === 401 || res.status === 403) {
+        if (res.status === 401) {
           router.push('/admin/login');
+          return;
+        }
+        if (res.status === 403) {
+          const errData = await res.json().catch(() => ({}));
+          if (errData.code === 'MFA_REQUIRED') {
+            router.push('/admin/mfa/verify');
+          } else {
+            router.push('/admin/login');
+          }
           return;
         }
         const data = await res.json();

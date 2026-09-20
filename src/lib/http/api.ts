@@ -79,20 +79,42 @@ export async function enforceRateLimit(
   );
 }
 
-export function errorResponse(error: unknown, fallbackMessage: string): NextResponse {
+export const ADMIN_NO_CACHE_HEADERS = {
+  'Cache-Control': 'private, no-store, no-cache, must-revalidate, max-age=0',
+  Pragma: 'no-cache',
+  Expires: '0',
+} as const;
+
+export function adminJsonResponse(body: unknown, init?: ResponseInit): NextResponse {
+  return NextResponse.json(body, {
+    ...init,
+    headers: {
+      ...ADMIN_NO_CACHE_HEADERS,
+      ...(init?.headers || {}),
+    },
+  });
+}
+
+export function errorResponse(
+  error: unknown,
+  fallbackMessage: string,
+  headers?: HeadersInit
+): NextResponse {
+  const init = headers ? { headers } : undefined;
+
   if (error instanceof ZodError) {
     return NextResponse.json(
       { success: false, error: error.issues[0]?.message || '입력값을 확인해 주세요.' },
-      { status: 400 }
+      { status: 400, ...init }
     );
   }
 
   if (error instanceof AppError) {
     return NextResponse.json(
       { success: false, error: error.message, code: error.code },
-      { status: error.status }
+      { status: error.status, ...init }
     );
   }
 
-  return NextResponse.json({ success: false, error: fallbackMessage }, { status: 500 });
+  return NextResponse.json({ success: false, error: fallbackMessage }, { status: 500, ...init });
 }

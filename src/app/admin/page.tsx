@@ -1,20 +1,25 @@
 import { redirect } from 'next/navigation';
-import { verifyAdminSession } from '@/lib/security/adminAuth';
+import { verifyAdminAal1Session, getAdminMfaRoutingStep } from '@/lib/security/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminRootPage() {
-  let authed = false;
+  let targetPath = '/admin/login';
+
   try {
-    await verifyAdminSession();
-    authed = true;
+    const { authClient } = await verifyAdminAal1Session();
+    const mfaStatus = await getAdminMfaRoutingStep(authClient);
+
+    if (mfaStatus.step === 'DASHBOARD') {
+      targetPath = '/admin/feedback';
+    } else if (mfaStatus.step === 'VERIFY') {
+      targetPath = '/admin/mfa/verify';
+    } else {
+      targetPath = '/admin/mfa/setup';
+    }
   } catch {
-    authed = false;
+    targetPath = '/admin/login';
   }
 
-  if (authed) {
-    redirect('/admin/feedback');
-  } else {
-    redirect('/admin/login');
-  }
+  redirect(targetPath);
 }

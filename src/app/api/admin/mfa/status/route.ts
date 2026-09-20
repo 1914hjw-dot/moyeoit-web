@@ -4,19 +4,18 @@ import { errorResponse, adminJsonResponse, ADMIN_NO_CACHE_HEADERS } from '@/lib/
 
 export async function GET(): Promise<NextResponse> {
   try {
-    const { email, authClient } = await verifyAdminAal1Session();
+    const { authClient } = await verifyAdminAal1Session();
     const mfaStatus = await getAdminMfaRoutingStep(authClient);
 
     return adminJsonResponse({
       success: true,
-      authenticated: true,
-      email,
       step: mfaStatus.step,
       currentLevel: mfaStatus.currentLevel,
       nextLevel: mfaStatus.nextLevel,
-      isAal2: mfaStatus.currentLevel === 'aal2',
+      factors: mfaStatus.factors,
+      defaultFactorId: mfaStatus.defaultFactorId,
     });
   } catch (error) {
-    return errorResponse(error, '관리자 인증 세션을 확인할 수 없습니다.', ADMIN_NO_CACHE_HEADERS);
+    return errorResponse(error, 'MFA 상태를 확인할 수 없습니다.', ADMIN_NO_CACHE_HEADERS);
   }
 }

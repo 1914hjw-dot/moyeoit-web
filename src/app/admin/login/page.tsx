@@ -11,7 +11,7 @@ export default function AdminLoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // If already logged in, redirect directly to admin console
+  // If already logged in, redirect based on MFA status
   useEffect(() => {
     let ignore = false;
     async function checkSession() {
@@ -20,7 +20,13 @@ export default function AdminLoginPage() {
         if (res.ok) {
           const data = await res.json();
           if (!ignore && data.authenticated) {
-            router.replace('/admin/feedback');
+            if (data.step === 'DASHBOARD') {
+              router.replace('/admin/feedback');
+            } else if (data.step === 'VERIFY') {
+              router.replace('/admin/mfa/verify');
+            } else if (data.step === 'SETUP') {
+              router.replace('/admin/mfa/setup');
+            }
           }
         }
       } catch {
@@ -55,7 +61,13 @@ export default function AdminLoginPage() {
         throw new Error(data.error || '이메일 또는 비밀번호가 올바르지 않습니다.');
       }
 
-      router.push('/admin/feedback');
+      if (data.nextStep === 'SETUP') {
+        router.push('/admin/mfa/setup');
+      } else if (data.nextStep === 'VERIFY') {
+        router.push('/admin/mfa/verify');
+      } else {
+        router.push('/admin/feedback');
+      }
       router.refresh();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : '로그인에 실패했습니다.');

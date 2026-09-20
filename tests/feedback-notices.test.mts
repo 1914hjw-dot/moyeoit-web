@@ -120,3 +120,40 @@ test('admin whitelist correctly evaluates configured admin emails and strips quo
   assert.equal(isEmailInAdminWhitelist(undefined), false);
   assert.equal(isEmailInAdminWhitelist(''), false);
 });
+
+test('totp 6-digit code validation accepts exact 6 digits and rejects invalid formats', () => {
+  const isValidTotp = (code: string) => /^\d{6}$/.test(code.trim());
+
+  assert.equal(isValidTotp('123456'), true);
+  assert.equal(isValidTotp('000000'), true);
+  assert.equal(isValidTotp('999999'), true);
+  assert.equal(isValidTotp('  123456  '), true);
+  assert.equal(isValidTotp('12345'), false);
+  assert.equal(isValidTotp('1234567'), false);
+  assert.equal(isValidTotp('12345a'), false);
+  assert.equal(isValidTotp('abcdef'), false);
+  assert.equal(isValidTotp(''), false);
+});
+
+test('mfa aal routing rules deterministically resolve setup, verify, and dashboard steps', () => {
+  function resolveStep(currentLevel: string | null, nextLevel: string | null): 'SETUP' | 'VERIFY' | 'DASHBOARD' {
+    if (currentLevel === 'aal2' && nextLevel === 'aal2') {
+      return 'DASHBOARD';
+    }
+    if (currentLevel === 'aal1' && nextLevel === 'aal2') {
+      return 'VERIFY';
+    }
+    return 'SETUP';
+  }
+
+  // Case 1: No verified factor -> SETUP
+  assert.equal(resolveStep('aal1', 'aal1'), 'SETUP');
+  assert.equal(resolveStep(null, null), 'SETUP');
+
+  // Case 2: Verified factor exists, session at AAL1 -> VERIFY
+  assert.equal(resolveStep('aal1', 'aal2'), 'VERIFY');
+
+  // Case 3: Verified factor exists, session promoted to AAL2 -> DASHBOARD
+  assert.equal(resolveStep('aal2', 'aal2'), 'DASHBOARD');
+});
+

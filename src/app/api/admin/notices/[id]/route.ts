@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminSession } from '@/lib/security/adminAuth';
 import { updateNotice, deleteNotice } from '@/lib/services/noticeService';
-import { requireJsonRequest, errorResponse } from '@/lib/http/api';
+import { requireJsonRequest, errorResponse, adminJsonResponse, ADMIN_NO_CACHE_HEADERS } from '@/lib/http/api';
 
 export async function PATCH(
   request: NextRequest,
@@ -17,12 +17,12 @@ export async function PATCH(
     const body = await request.json();
     const updated = await updateNotice(id, body);
 
-    return NextResponse.json({
+    return adminJsonResponse({
       success: true,
       notice: updated,
     });
   } catch (error) {
-    return errorResponse(error, '공지사항 수정에 실패했습니다.');
+    return errorResponse(error, '공지사항 수정에 실패했습니다.', ADMIN_NO_CACHE_HEADERS);
   }
 }
 
@@ -37,13 +37,13 @@ export async function DELETE(
       request.headers.get('host')?.trim();
     try {
       if (!expectedHost || new URL(origin).host !== expectedHost) {
-        return NextResponse.json(
+        return adminJsonResponse(
           { success: false, error: '허용되지 않은 요청 출처입니다.' },
           { status: 403 }
         );
       }
     } catch {
-      return NextResponse.json(
+      return adminJsonResponse(
         { success: false, error: '허용되지 않은 요청 출처입니다.' },
         { status: 403 }
       );
@@ -56,11 +56,11 @@ export async function DELETE(
     const { id } = await context.params;
     await deleteNotice(id);
 
-    return NextResponse.json({
+    return adminJsonResponse({
       success: true,
       message: '공지사항이 삭제되었습니다.',
     });
   } catch (error) {
-    return errorResponse(error, '공지사항 삭제에 실패했습니다.');
+    return errorResponse(error, '공지사항 삭제에 실패했습니다.', ADMIN_NO_CACHE_HEADERS);
   }
 }
