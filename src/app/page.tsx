@@ -44,6 +44,7 @@ export default function HomePage() {
     try {
       const res = await fetch('/api/rooms', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: title.trim(),
@@ -64,12 +65,6 @@ export default function HomePage() {
       const publicUrlId = data.room.legacy_slug || data.room.id;
 
       if (typeof window !== 'undefined') {
-        if (data.room.host_secret) {
-          localStorage.setItem(`moyeoit_host_secret_${data.room.id}`, data.room.host_secret);
-          if (data.room.legacy_slug) {
-            localStorage.setItem(`moyeoit_host_secret_${data.room.legacy_slug}`, data.room.host_secret);
-          }
-        }
         localStorage.setItem(`moyeoit_host_${data.room.id}`, 'true');
         if (data.room.legacy_slug) {
           localStorage.setItem(`moyeoit_host_${data.room.legacy_slug}`, 'true');

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { enforceRateLimit, errorResponse, requireJsonRequest } from '@/lib/http/api';
+import { enforceRateLimit, errorResponse, parseJsonBody, requireJsonRequest } from '@/lib/http/api';
 import { submitFeedback } from '@/lib/services/feedbackService';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (rateLimitError) return rateLimitError;
 
   try {
-    const body = await request.json();
+    const body = await parseJsonBody<Record<string, unknown>>(request);
     const userAgent = request.headers.get('user-agent') || undefined;
     const feedback = await submitFeedback(body, userAgent);
 

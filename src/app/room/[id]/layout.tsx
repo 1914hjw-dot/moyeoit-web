@@ -30,7 +30,7 @@ export async function generateMetadata({
   }
 
   const roomUrl = `${SITE_URL}/room/${id}`;
-  const ogImageUrl = `${SITE_URL}/api/og?title=${encodeURIComponent(roomTitle)}`;
+  const ogImageUrl = `${SITE_URL}/api/og?roomId=${encodeURIComponent(id)}`;
 
   return {
     title: `${roomTitle} | 모여잇`,

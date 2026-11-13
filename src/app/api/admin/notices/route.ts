@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminSession } from '@/lib/security/adminAuth';
 import { getAdminNotices, createNotice } from '@/lib/services/noticeService';
-import { requireJsonRequest, errorResponse, adminJsonResponse, ADMIN_NO_CACHE_HEADERS } from '@/lib/http/api';
+import {
+  ADMIN_NO_CACHE_HEADERS,
+  adminJsonResponse,
+  errorResponse,
+  parseJsonBody,
+  requireJsonRequest,
+} from '@/lib/http/api';
 
 export async function GET(): Promise<NextResponse> {
   try {
@@ -18,13 +24,13 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const jsonError = requireJsonRequest(request);
+  const jsonError = requireJsonRequest(request, ADMIN_NO_CACHE_HEADERS);
   if (jsonError) return jsonError;
 
   try {
     await verifyAdminSession();
 
-    const body = await request.json();
+    const body = await parseJsonBody<Record<string, unknown>>(request);
     const notice = await createNotice(body);
 
     return adminJsonResponse({

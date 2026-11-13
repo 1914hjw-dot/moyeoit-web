@@ -1,8 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminAal1Session } from '@/lib/security/adminAuth';
-import { errorResponse, adminJsonResponse, ADMIN_NO_CACHE_HEADERS } from '@/lib/http/api';
+import {
+  ADMIN_NO_CACHE_HEADERS,
+  adminJsonResponse,
+  errorResponse,
+  verifySameOrigin,
+} from '@/lib/http/api';
 
-export async function POST(): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const originError = verifySameOrigin(request, ADMIN_NO_CACHE_HEADERS);
+  if (originError) return originError;
+
   try {
     const { user, authClient } = await verifyAdminAal1Session();
 

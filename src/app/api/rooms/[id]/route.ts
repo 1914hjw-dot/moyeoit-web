@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRoomById, toPublicRoom } from '@/lib/services/roomService';
 import { enforceRateLimit, errorResponse } from '@/lib/http/api';
+import { extractHostSecretFromCookies } from '@/lib/security/hostSecretCookie';
+import { verifyCapabilityToken } from '@/lib/crypto';
 
 export async function GET(
   request: NextRequest,
@@ -19,8 +21,15 @@ export async function GET(
       );
     }
 
+    const cookieSecret = extractHostSecretFromCookies(request, [id, room.id, room.legacy_slug]);
+    const isHost = Boolean(
+      cookieSecret &&
+        room.secret_hash &&
+        (await verifyCapabilityToken(cookieSecret, room.secret_hash))
+    );
+
     return NextResponse.json(
-      { success: true, room: toPublicRoom(room) },
+      { success: true, room: toPublicRoom(room), is_host: isHost },
       { headers: { 'Cache-Control': 'private, no-store' } }
     );
   } catch (error) {

@@ -5,13 +5,9 @@ const scriptSources = [
   "'unsafe-inline'",
   ...(process.env.NODE_ENV === 'development' ? ["'unsafe-eval'"] : []),
   'https://t1.kakaocdn.net',
-  'https://*.kakaocdn.net',
   'https://t1.daumcdn.net',
-  'https://*.daumcdn.net',
   'https://display.adfit.kakao.com',
-  'https://*.adfit.kakao.com',
   'https://serv.ds.kakao.com',
-  'https://*.ds.kakao.com',
   'https://www.googletagmanager.com',
 ].join(' ');
 
@@ -61,6 +57,8 @@ const nextConfig: NextConfig = {
               "base-uri 'self'",
               "form-action 'self'",
               "frame-ancestors 'self'",
+              "worker-src 'self' blob:",
+              "manifest-src 'self'",
               'upgrade-insecure-requests',
             ].join('; '),
           },

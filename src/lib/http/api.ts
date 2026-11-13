@@ -3,53 +3,99 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { AppError } from '@/lib/errors';
-import { checkRateLimit, createRateLimitKey } from '@/lib/security/rateLimiter';
+import {
+  checkRateLimit,
+  createRateLimitKey,
+  type RateLimitResult,
+} from '@/lib/security/rateLimiter';
+import {
+  checkSameOrigin,
+  DEFAULT_MAX_JSON_BYTES,
+  extractClientIpFromHeaders,
+  parseJsonBodyWithLimit,
+} from './requestSecurity';
 
-export function requireJsonRequest(request: NextRequest): NextResponse | null {
+export interface EnforceRateLimitOptions {
+  failClosed?: boolean;
+  headers?: HeadersInit;
+}
+
+export function verifySameOrigin(
+  request: NextRequest,
+  headers?: HeadersInit
+): NextResponse | null {
+  const result = checkSameOrigin(request.headers);
+  if (result.ok) return null;
+
+  return NextResponse.json(
+    { success: false, error: result.error },
+    { status: 403, ...(headers ? { headers } : {}) }
+  );
+}
+
+export function requireJsonRequest(
+  request: NextRequest,
+  headers?: HeadersInit
+): NextResponse | null {
+  const init = headers ? { headers } : undefined;
   const contentType = request.headers.get('content-type') || '';
   if (!contentType.toLowerCase().includes('application/json')) {
     return NextResponse.json(
       { success: false, error: '올바른 Content-Type (application/json)이 아닙니다.' },
-      { status: 415 }
+      { status: 415, ...init }
     );
   }
 
   const contentLength = Number(request.headers.get('content-length') || 0);
-  if (Number.isFinite(contentLength) && contentLength > 64 * 1024) {
+  if (Number.isFinite(contentLength) && contentLength > DEFAULT_MAX_JSON_BYTES) {
     return NextResponse.json(
       { success: false, error: '요청 본문이 너무 큽니다.' },
-      { status: 413 }
+      { status: 413, ...init }
     );
   }
 
-  const origin = request.headers.get('origin');
-  if (origin) {
-    const expectedHost =
-      request.headers.get('x-forwarded-host')?.split(',')[0]?.trim() ||
-      request.headers.get('host')?.trim();
-    try {
-      if (!expectedHost || new URL(origin).host !== expectedHost) {
-        return NextResponse.json(
-          { success: false, error: '허용되지 않은 요청 출처입니다.' },
-          { status: 403 }
-        );
-      }
-    } catch {
-      return NextResponse.json(
-        { success: false, error: '허용되지 않은 요청 출처입니다.' },
-        { status: 403 }
-      );
-    }
-  }
+  return verifySameOrigin(request, headers);
+}
 
-  return null;
+export async function parseJsonBody<T = Record<string, unknown>>(
+  request: NextRequest,
+  maxBytes: number = DEFAULT_MAX_JSON_BYTES
+): Promise<T> {
+  return parseJsonBodyWithLimit<T>(request, maxBytes);
 }
 
 export function getClientIp(request: NextRequest): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip')?.trim() ||
-    'unknown'
+  return extractClientIpFromHeaders(request.headers);
+}
+
+function buildRateLimitErrorResponse(
+  result: RateLimitResult,
+  maxAttempts: number,
+  headers?: HeadersInit
+): NextResponse | null {
+  if (result.backendUnavailable) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: '보안 확인 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+      },
+      { status: 503, ...(headers ? { headers } : {}) }
+    );
+  }
+
+  if (result.allowed) return null;
+
+  const mergedHeaders = new Headers(headers);
+  mergedHeaders.set('Retry-After', result.resetTimeSeconds.toString());
+  mergedHeaders.set('X-RateLimit-Limit', maxAttempts.toString());
+  mergedHeaders.set('X-RateLimit-Remaining', '0');
+
+  return NextResponse.json(
+    {
+      success: false,
+      error: '짧은 시간 동안 너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해 주세요.',
+    },
+    { status: 429, headers: mergedHeaders }
   );
 }
 
@@ -57,26 +103,34 @@ export async function enforceRateLimit(
   request: NextRequest,
   scope: string,
   maxAttempts: number,
-  windowMs: number = 60_000
+  windowMs: number = 60_000,
+  options?: EnforceRateLimitOptions
 ): Promise<NextResponse | null> {
   const result = await checkRateLimit(
     createRateLimitKey(scope, getClientIp(request)),
     maxAttempts,
-    windowMs
+    windowMs,
+    { failClosed: options?.failClosed }
   );
-  if (result.allowed) return null;
 
-  return NextResponse.json(
-    { success: false, error: '짧은 시간 동안 너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해 주세요.' },
-    {
-      status: 429,
-      headers: {
-        'Retry-After': result.resetTimeSeconds.toString(),
-        'X-RateLimit-Limit': maxAttempts.toString(),
-        'X-RateLimit-Remaining': '0',
-      },
-    }
+  return buildRateLimitErrorResponse(result, maxAttempts, options?.headers);
+}
+
+export async function enforceIdentifierRateLimit(
+  scope: string,
+  identifier: string,
+  maxAttempts: number,
+  windowMs: number = 60_000,
+  options?: EnforceRateLimitOptions
+): Promise<NextResponse | null> {
+  const result = await checkRateLimit(
+    createRateLimitKey(scope, identifier),
+    maxAttempts,
+    windowMs,
+    { failClosed: options?.failClosed }
   );
+
+  return buildRateLimitErrorResponse(result, maxAttempts, options?.headers);
 }
 
 export const ADMIN_NO_CACHE_HEADERS = {

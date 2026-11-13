@@ -8,7 +8,7 @@ Node.js 22 이상을 권장합니다.
 
 ```bash
 npm ci
-copy env.example .env.local
+copy .env.example .env.local
 npm run dev
 ```
 
@@ -20,7 +20,7 @@ npm run check
 
 ## 필수 환경변수
 
-키 목록은 `env.example`을 참고합니다. 운영 환경에서는 다음 값이 반드시 필요합니다.
+키 목록은 `.env.example`을 참고합니다. 운영 환경에서는 다음 값이 반드시 필요합니다.
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY` — 서버에서만 사용하며 `NEXT_PUBLIC_` 접두사를 붙이면 안 됩니다.
@@ -35,7 +35,7 @@ npm run check
 
 1. Vercel Production 환경에 `SUPABASE_SERVICE_ROLE_KEY`와 충분히 긴 무작위 `CRON_SECRET`을 설정합니다.
 2. 이 애플리케이션 코드를 Vercel에 먼저 배포합니다. 새 코드는 기존 원문 비밀값과 `sha256:` 해시를 모두 검증할 수 있습니다.
-3. 배포 직후 Supabase에서 `supabase/migrations/20260903_production_security_hardening.sql`을 실행합니다.
+3. 배포 직후 Supabase에서 `supabase/migrations/20260920_baseline_schema.sql`을 실행합니다.
 4. 방 생성, 투표 생성·수정·삭제, 방장 날짜 확정, 시연 모임방을 스모크 테스트합니다.
 5. Vercel Cron 실행 로그에서 `/api/cron/cleanup`이 200을 반환하는지 확인합니다.
 

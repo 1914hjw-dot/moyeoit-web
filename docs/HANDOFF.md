@@ -75,7 +75,7 @@ docs/                    인수인계
 
 ## 환경변수
 
-실제 비밀값은 문서나 커밋에 넣지 않습니다. 키 목록은 `env.example`을 참조합니다.
+실제 비밀값은 문서나 커밋에 넣지 않습니다. 키 목록은 `.env.example`을 참조합니다.
 
 - 필수: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`.
 - 공개 연동: `NEXT_PUBLIC_GA_MEASUREMENT_ID`, `NEXT_PUBLIC_ADFIT_HOME`.

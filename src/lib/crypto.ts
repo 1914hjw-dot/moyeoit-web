@@ -1,8 +1,9 @@
 const textEncoder = new TextEncoder();
-const LEGACY_PASSWORD_PEPPER = '_moyeoit_secure_salt_v2_2026_x89a3f';
+const DEFAULT_LEGACY_PASSWORD_PEPPER = '_moyeoit_secure_salt_v2_2026_x89a3f';
 const PASSWORD_HASH_PREFIX = 'pbkdf2-sha256';
 const PASSWORD_HASH_ITERATIONS = 310_000;
 const CAPABILITY_HASH_PREFIX = 'sha256:';
+const LEGACY_SHA256_HEX_REGEX = /^[a-f0-9]{64}$/i;
 
 function getWebCrypto(): Crypto {
   if (!globalThis.crypto?.subtle || !globalThis.crypto.getRandomValues) {
@@ -56,7 +57,8 @@ async function sha256(value: string): Promise<string> {
 /** Legacy password digest verification only. New passwords use PBKDF2. */
 export async function hashPassword(password: string): Promise<string> {
   if (!password.trim()) return '';
-  return sha256(password.trim() + LEGACY_PASSWORD_PEPPER);
+  const pepper = process.env.LEGACY_PASSWORD_PEPPER || DEFAULT_LEGACY_PASSWORD_PEPPER;
+  return sha256(password.trim() + pepper);
 }
 
 export async function createPasswordHash(password: string): Promise<string> {
@@ -97,7 +99,8 @@ export async function verifyPassword(password: string, storedHash: string): Prom
   if (!cleanPassword || !storedHash) return false;
 
   if (!storedHash.startsWith(`${PASSWORD_HASH_PREFIX}$`)) {
-    return timingSafeStringEqual(await hashPassword(cleanPassword), storedHash);
+    if (!LEGACY_SHA256_HEX_REGEX.test(storedHash)) return false;
+    return timingSafeStringEqual(await hashPassword(cleanPassword), storedHash.toLowerCase());
   }
 
   const [prefix, iterationText, saltText, expectedText] = storedHash.split('$');
@@ -181,14 +184,11 @@ export async function hashCapabilityToken(token: string): Promise<string> {
 }
 
 export async function verifyCapabilityToken(token: string, storedValue: string): Promise<boolean> {
-  if (!token || !storedValue) return false;
-
-  if (storedValue.startsWith(CAPABILITY_HASH_PREFIX)) {
-    return timingSafeStringEqual(await hashCapabilityToken(token), storedValue);
+  if (!token || !storedValue || !storedValue.startsWith(CAPABILITY_HASH_PREFIX)) {
+    return false;
   }
 
-  // Backward compatibility until the production migration hashes legacy secrets.
-  return timingSafeStringEqual(token, storedValue);
+  return timingSafeStringEqual(await hashCapabilityToken(token), storedValue);
 }
 
 export function sanitizeInput(input: string, maxLength: number = 200): string {

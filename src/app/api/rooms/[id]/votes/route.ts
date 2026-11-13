@@ -3,6 +3,7 @@ import { deleteVote, getVotesByRoomId, submitVote } from '@/lib/services/voteSer
 import {
   enforceRateLimit,
   errorResponse,
+  parseJsonBody,
   requireJsonRequest,
 } from '@/lib/http/api';
 
@@ -37,7 +38,7 @@ export async function POST(
 
   try {
     const { id } = await params;
-    const body = (await request.json()) as Record<string, unknown>;
+    const body = await parseJsonBody<Record<string, unknown>>(request);
     const vote = await submitVote({ ...body, room_id: id });
     return NextResponse.json({ success: true, vote }, { status: 201 });
   } catch (error) {
@@ -52,12 +53,14 @@ export async function DELETE(
 ) {
   const contentTypeError = requireJsonRequest(request);
   if (contentTypeError) return contentTypeError;
-  const rateLimitError = await enforceRateLimit(request, 'vote-delete', 10);
+  const rateLimitError = await enforceRateLimit(request, 'vote-delete', 10, 60_000, {
+    failClosed: true,
+  });
   if (rateLimitError) return rateLimitError;
 
   try {
     const { id } = await params;
-    const body = (await request.json()) as Record<string, unknown>;
+    const body = await parseJsonBody<Record<string, unknown>>(request);
     await deleteVote({ ...body, room_id: id });
     return NextResponse.json({ success: true, message: '투표가 성공적으로 삭제되었습니다.' });
   } catch (error) {

@@ -1,12 +1,18 @@
 import { z } from 'zod';
-import { validateAndSanitizeUGC } from './ugcFilter';
+import { validateAndSanitizeUGC } from './ugcFilter.ts';
 
-function applyUGCFilter(val: string, fieldName: string): string {
-  const result = validateAndSanitizeUGC(val, fieldName);
-  if (!result.isValid) {
-    throw new Error(result.errorReason || `${fieldName}에 허용되지 않는 텍스트가 포함되어 있습니다.`);
-  }
-  return result.sanitizedText;
+function ugcFilteredString(fieldName: string) {
+  return z.string().transform((val, ctx) => {
+    const result = validateAndSanitizeUGC(val, fieldName);
+    if (!result.isValid) {
+      ctx.addIssue({
+        code: 'custom',
+        message: result.errorReason || `${fieldName}에 허용되지 않는 텍스트가 포함되어 있습니다.`,
+      });
+      return z.NEVER;
+    }
+    return result.sanitizedText;
+  });
 }
 
 function isValidDateString(value: string): boolean {
@@ -30,18 +36,13 @@ export const AvailabilityStatusSchema = z.enum(['possible', 'impossible', 'maybe
 
 export const CreateRoomInputSchema = z
   .object({
-    title: z
-      .string()
-      .transform((val) => applyUGCFilter(val, '모임 제목'))
-      .pipe(
-        z
-          .string()
-          .min(1, { message: '모임 제목을 입력해 주세요.' })
-          .max(80, { message: '모임 제목은 최대 80자까지 입력 가능합니다.' })
-      ),
-    description: z
-      .string()
-      .transform((val) => applyUGCFilter(val, '안내 문구'))
+    title: ugcFilteredString('모임 제목').pipe(
+      z
+        .string()
+        .min(1, { message: '모임 제목을 입력해 주세요.' })
+        .max(80, { message: '모임 제목은 최대 80자까지 입력 가능합니다.' })
+    ),
+    description: ugcFilteredString('안내 문구')
       .pipe(z.string().max(200, { message: '안내 문구는 최대 200자까지 입력 가능합니다.' }))
       .optional()
       .default(''),
@@ -59,12 +60,7 @@ export const CreateRoomInputSchema = z
       .optional()
       .default([]),
     time_slots: z
-      .array(
-        z
-          .string()
-          .transform((val) => applyUGCFilter(val, '시간대'))
-          .pipe(z.string().min(1).max(50))
-      )
+      .array(ugcFilteredString('시간대').pipe(z.string().min(1).max(50)))
       .max(10, { message: '시간대는 최대 10개까지 설정 가능합니다.' })
       .optional()
       .default([]),
@@ -91,22 +87,19 @@ export const ConfirmRoomInputSchema = z.object({
     .string()
     .trim()
     .min(1, { message: '확정할 날짜를 선택해 주세요.' })
-    .transform((val) => applyUGCFilter(val, '확정 날짜'))
+    .pipe(ugcFilteredString('확정 날짜'))
     .pipe(z.string().max(100, { message: '확정 날짜 값이 너무 깁니다.' })),
   host_secret: z.string().trim().max(200).optional().default(''),
 });
 
 export const SubmitVoteInputSchema = z.object({
   room_id: RoomIdSchema,
-  nickname: z
-    .string()
-    .transform((val) => applyUGCFilter(val, '닉네임'))
-    .pipe(
-      z
-        .string()
-        .min(1, { message: '닉네임을 입력해 주세요.' })
-        .max(30, { message: '닉네임은 최대 30자까지 입력 가능합니다.' })
-    ),
+  nickname: ugcFilteredString('닉네임').pipe(
+    z
+      .string()
+      .min(1, { message: '닉네임을 입력해 주세요.' })
+      .max(30, { message: '닉네임은 최대 30자까지 입력 가능합니다.' })
+  ),
   password: z
     .string()
     .trim()
@@ -117,9 +110,7 @@ export const SubmitVoteInputSchema = z.object({
     .refine((availability) => Object.keys(availability).length <= 600, {
       message: '한 번에 등록할 수 있는 응답 항목이 너무 많습니다.',
     }),
-  note: z
-    .string()
-    .transform((val) => applyUGCFilter(val, '한줄 메모'))
+  note: ugcFilteredString('한줄 메모')
     .pipe(z.string().max(200, { message: '한줄 메모는 최대 200자까지 입력 가능합니다.' }))
     .optional()
     .default(''),
@@ -127,15 +118,12 @@ export const SubmitVoteInputSchema = z.object({
 
 export const DeleteVoteInputSchema = z.object({
   room_id: RoomIdSchema,
-  nickname: z
-    .string()
-    .transform((val) => applyUGCFilter(val, '닉네임'))
-    .pipe(
-      z
-        .string()
-        .min(1, { message: '닉네임을 입력해 주세요.' })
-        .max(30, { message: '닉네임은 최대 30자까지 입력 가능합니다.' })
-    ),
+  nickname: ugcFilteredString('닉네임').pipe(
+    z
+      .string()
+      .min(1, { message: '닉네임을 입력해 주세요.' })
+      .max(30, { message: '닉네임은 최대 30자까지 입력 가능합니다.' })
+  ),
   password: z
     .string()
     .trim()

@@ -10,7 +10,11 @@ import {
 } from '@/lib/crypto';
 import { getRoomById, isDemoRoomId, logAuditTrail } from './roomService';
 import { AppError, ConfigurationError } from '@/lib/errors';
-import { checkRateLimit, createRateLimitKey } from '@/lib/security/rateLimiter';
+import {
+  assertVotePinNotLocked,
+  clearVotePinFailuresOnSuccess,
+  recordVotePinFailure,
+} from '@/lib/security/pinLockout';
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -125,14 +129,7 @@ async function authorizeVoteMutation(
   password: string,
   allowLegacyPinUpgrade: boolean = false
 ): Promise<{ method: 'pin' | 'legacy_token' }> {
-  const limit = await checkRateLimit(
-    createRateLimitKey('vote-auth', `${roomId}:${nickname.toLocaleLowerCase('ko-KR')}`),
-    12,
-    60_000
-  );
-  if (!limit.allowed) {
-    throw new AppError('소유권 확인 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.', 429, 'RATE_LIMITED');
-  }
+  await assertVotePinNotLocked(roomId, nickname);
 
   const result = await verifyVoteOwnership({
     password,
@@ -143,6 +140,10 @@ async function authorizeVoteMutation(
   });
 
   if (!result.authorized || result.method === 'none') {
+    if (existing.password_hash) {
+      await recordVotePinFailure(roomId, nickname);
+    }
+
     throw new AppError(
       existing.password_hash
         ? '비밀번호(PIN) 숫자 4자리가 일치하지 않습니다.'
@@ -150,6 +151,10 @@ async function authorizeVoteMutation(
       403,
       'VOTE_AUTH_FAILED'
     );
+  }
+
+  if (result.method === 'pin') {
+    await clearVotePinFailuresOnSuccess(roomId, nickname);
   }
 
   return { method: result.method };

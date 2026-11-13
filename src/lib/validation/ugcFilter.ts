@@ -4,10 +4,12 @@
  */
 
 // 1. Abuse & Profanity Term Dictionary (Korean & English Slurs, Adult, Gambling, Hate Speech)
+// Use word boundaries for English terms to avoid false positives (e.g., "Dickens").
+// Avoid overly broad Korean substrings that block legitimate meeting names (e.g., "성인식", "바보 모임").
 const PROFANITY_PATTERNS = [
-  /시발|씨발|썅|개새끼|지랄|존나|졸라|미친놈|미친년|병신|븅신|새끼|좆|씹|바보|멍청이/i,
-  /성인|야동|바카라|카지노|토토|조건만남|출장안마|사설토토|릴게임|슬롯머신|음란/i,
-  /fuck|shit|bitch|bastard|asshole|cunt|dick|pussy|nigger|retard/i,
+  /시발|씨발|썅|개새끼|미친새끼|병신새끼|지랄|존나|졸라|미친놈|미친년|병신|븅신|좆|씹/i,
+  /성인용품|성인방송|성인사이트|성인광고|야동|바카라|카지노사이트|사설토토|토토사이트|불법토토|조건만남|출장안마|출장샵|릴게임|슬롯머신|음란물/i,
+  /\b(fuck|fucking|shit|bitch|bastard|asshole|cunt|dick|pussy|nigger|retard)\b/i,
 ];
 
 // 2. PII (Person Identifiable Information) Detection Regex Patterns
@@ -19,6 +21,15 @@ const PII_PATTERNS = [
 
 // 3. Suspicious URL Spam Pattern
 const SPAM_URL_PATTERN = /(https?:\/\/|www\.)[^\s]+\.(xyz|top|click|link|online|site|club|work|monster|buzz|cam|icu)/i;
+
+// General URL or domain pattern (used for OG/phishing-sensitive surfaces)
+const URL_OR_DOMAIN_PATTERN =
+  /(https?:\/\/|www\.|[a-z0-9-]+\.(com|net|org|kr|co\.kr|io|app|me|xyz|top|click|link|online|site|club|work|monster|buzz|cam|icu|info|biz|tv|gg)\b)/i;
+
+export function containsUrlOrDomain(text: string): boolean {
+  if (!text) return false;
+  return URL_OR_DOMAIN_PATTERN.test(text);
+}
 
 // 4. Repeated Character Spam Pattern (More than 10 consecutive identical characters)
 const REPEATED_CHAR_PATTERN = /(.)\1{10,}/;

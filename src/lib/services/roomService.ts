@@ -79,13 +79,16 @@ function generateShortSlug(): string {
 export async function logAuditTrail(
   eventType: string,
   targetId: string,
-  payload?: Record<string, unknown>
+  payload?: Record<string, unknown>,
+  metadata?: { ipAddress?: string; userAgent?: string }
 ): Promise<void> {
   if (!supabaseServer) return;
 
   const { error } = await supabaseServer.from('audit_logs').insert({
-    event_type: eventType,
-    target_id: targetId,
+    event_type: eventType.slice(0, 50),
+    target_id: targetId.slice(0, 100),
+    ip_address: metadata?.ipAddress ? metadata.ipAddress.slice(0, 50) : null,
+    user_agent: metadata?.userAgent ? metadata.userAgent.slice(0, 500) : null,
     payload: payload || null,
   });
   if (error) console.error('Audit trail logging failed:', error.message);

@@ -97,7 +97,7 @@ export default function RoomDetailPage() {
   const loadRoomData = useCallback(async () => {
     if (!roomId) return;
     try {
-      const roomRes = await fetch(`/api/rooms/${roomId}`);
+      const roomRes = await fetch(`/api/rooms/${roomId}`, { credentials: 'same-origin' });
       const roomData = await roomRes.json();
 
       if (roomRes.ok && roomData.success && roomData.room) {
@@ -113,10 +113,12 @@ export default function RoomDetailPage() {
         setVotes(voteList);
 
         const identifiers = getRoomIdentifiers(roomId, roomData.room as Room);
-        const hostSecret = identifiers
-          .map((identifier) => localStorage.getItem(`moyeoit_host_secret_${identifier}`))
-          .find(Boolean);
-        setIsHost(Boolean(hostSecret));
+        const hasLegacyHostSecret = Boolean(
+          identifiers
+            .map((identifier) => localStorage.getItem(`moyeoit_host_secret_${identifier}`))
+            .find(Boolean)
+        );
+        setIsHost(Boolean(roomData.is_host) || hasLegacyHostSecret);
 
         // Check if user has previously voted stored in local storage nickname key
         const savedNickname = typeof window !== 'undefined'
@@ -268,17 +270,18 @@ export default function RoomDetailPage() {
       return;
     }
 
-    const hostSecret = getRoomIdentifiers(roomId, room)
+    const legacyHostSecret = getRoomIdentifiers(roomId, room)
       .map((identifier) => localStorage.getItem(`moyeoit_host_secret_${identifier}`))
       .find(Boolean);
 
     try {
       const res = await fetch(`/api/rooms/${room.id}/confirm`, {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           confirmed_date: dateKey,
-          host_secret: hostSecret,
+          ...(legacyHostSecret ? { host_secret: legacyHostSecret } : {}),
         }),
       });
 

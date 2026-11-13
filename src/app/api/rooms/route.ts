@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRoom } from '@/lib/services/roomService';
-import { enforceRateLimit, errorResponse, requireJsonRequest } from '@/lib/http/api';
+import { createRoom, toPublicRoom } from '@/lib/services/roomService';
+import {
+  enforceRateLimit,
+  errorResponse,
+  parseJsonBody,
+  requireJsonRequest,
+} from '@/lib/http/api';
+import { attachHostSecretCookies } from '@/lib/security/hostSecretCookie';
 
 export async function POST(request: NextRequest) {
   const contentTypeError = requireJsonRequest(request);
@@ -10,9 +16,14 @@ export async function POST(request: NextRequest) {
   if (rateLimitError) return rateLimitError;
 
   try {
-    const body: unknown = await request.json();
-    const room = await createRoom(body);
-    return NextResponse.json({ success: true, room }, { status: 201 });
+    const body = await parseJsonBody<unknown>(request);
+    const createdRoom = await createRoom(body);
+    const response = NextResponse.json(
+      { success: true, room: toPublicRoom({ ...createdRoom, status: createdRoom.status }) },
+      { status: 201 }
+    );
+    attachHostSecretCookies(response, createdRoom);
+    return response;
   } catch (error) {
     console.error('API /api/rooms POST failed:', error);
     return errorResponse(error, '모임방 생성 중 오류가 발생했습니다.');
