@@ -11,6 +11,8 @@ import { MultiShareButton } from '@/components/ui/MultiShareButton';
 import { HeatmapGrid } from '@/components/ui/HeatmapGrid';
 import { GuestVoteForm } from '@/components/ui/GuestVoteForm';
 import { ShareSheet } from '@/components/ui/ShareSheet';
+import { AdFitBanner } from '@/components/ads';
+import { ADFIT_ROOM_UNIT_ID } from '@/lib/ads';
 import { Footer } from '@/components/ui/Footer';
 import {
   LoadingState,
@@ -538,6 +540,7 @@ export default function RoomDetailPage() {
 
         {/* SECTION 5: 스폰서 혜택 */}
         <section className="pt-2">
+          <AdFitBanner unitId={ADFIT_ROOM_UNIT_ID} />
         </section>
       </div>
 

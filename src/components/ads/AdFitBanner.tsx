@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useSyncExternalStore } from 'react';
-import { IS_PRODUCTION, ADFIT_HOME_UNIT_ID } from '@/lib/ads';
+import { IS_PRODUCTION, ADFIT_HOME_UNIT_ID, resolveAdFitUnitId } from '@/lib/ads';
 
 interface AdFitBannerProps {
   unitId?: string;
@@ -27,6 +27,8 @@ export const AdFitBanner: React.FC<AdFitBannerProps> = ({
     getServerSnapshot
   );
 
+  const resolvedUnitId = resolveAdFitUnitId(unitId);
+
   useEffect(() => {
     if (!isLoaded || !containerRef.current) return;
 
@@ -38,7 +40,7 @@ export const AdFitBanner: React.FC<AdFitBannerProps> = ({
     const insTag = document.createElement('ins');
     insTag.className = 'kakao_ad_area';
     insTag.style.display = 'none';
-    insTag.setAttribute('data-ad-unit', unitId);
+    insTag.setAttribute('data-ad-unit', resolvedUnitId);
     insTag.setAttribute('data-ad-width', width.toString());
     insTag.setAttribute('data-ad-height', height.toString());
 
@@ -47,7 +49,7 @@ export const AdFitBanner: React.FC<AdFitBannerProps> = ({
     // Create and attach Kakao AdFit script
     const scriptTag = document.createElement('script');
     scriptTag.type = 'text/javascript';
-    scriptTag.src = '//t1.kakaocdn.net/kas/static/ba.min.js';
+    scriptTag.src = 'https://t1.kakaocdn.net/kas/static/ba.min.js';
     scriptTag.async = true;
 
     container.appendChild(scriptTag);
@@ -57,7 +59,7 @@ export const AdFitBanner: React.FC<AdFitBannerProps> = ({
         container.innerHTML = '';
       }
     };
-  }, [isLoaded, unitId, width, height]);
+  }, [isLoaded, resolvedUnitId, width, height]);
 
   if (!isLoaded) {
     return (

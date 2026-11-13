@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { FeatureSection } from '@/components/ui/FeatureSection';
 import { FAQSection } from '@/components/ui/FAQSection';
 import { GuideSection } from '@/components/ui/GuideSection';
-import { ShieldCheck, Zap, Sparkles } from 'lucide-react';
+import { ShieldCheck, Zap, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const HomeBelowTheFold: React.FC = () => {
   return (
@@ -21,20 +21,17 @@ export const HomeBelowTheFold: React.FC = () => {
 
         <div className="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
           <p>
-            우리는 동아리 정기 스터디, 친구들과의 주말 약속, 회사 팀 회식 날짜를 정할 때마다 <strong>카카오톡 단톡방에서 무수한 메시지와 끝없는 대화</strong>를 나누어야 했습니다. 단톡방 투표 기능을 사용하더라도 일일이 선택해야 하고, 여러 날짜 중 전원이 가능한 최고의 황금 날짜를 한눈에 계산하기 어려웠습니다.
-          </p>
-          <p>
-            <strong>모여잇(Moyeoit)</strong>은 복잡한 회원가입, 비밀번호 기억, 앱 다운로드 없이 <strong>초대 링크 하나로 참여자의 가능 날짜를 모으고 참석하기 좋은 후보를 비교하는 비회원 약속 조율 서비스</strong>입니다.
+            단톡방에서 끝없는 대화로 약속 날짜를 정하는 번거로움을 줄이기 위해 만들었습니다. 복잡한 회원가입이나 앱 설치 없이 초대 링크 하나로 참여자의 가능 날짜를 모으고 가장 참석률이 높은 후보일을 한눈에 비교할 수 있습니다.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
             <span className="text-xs font-black text-slate-900 flex items-center gap-1">
               <Zap className="w-4 h-4 text-amber-500" />
               <span>회원가입 없이 참여</span>
             </span>
-            <p className="text-[11px] text-slate-500">회원가입 없이 누구나 즉시 투표 참여 가능</p>
+            <p className="text-[11px] text-slate-500">초대 링크에서 닉네임만으로 즉시 투표 참여</p>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
@@ -47,10 +44,18 @@ export const HomeBelowTheFold: React.FC = () => {
 
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
             <span className="text-xs font-black text-slate-900 flex items-center gap-1">
-              <ShieldCheck className="w-4 h-4 text-indigo-600" />
-              <span>개인정보 최소 수집</span>
+              <CheckCircle2 className="w-4 h-4 text-slate-700" />
+              <span>직관적인 참여 히트맵</span>
             </span>
-            <p className="text-[11px] text-slate-500">생성 90일 후 모임방과 투표 데이터 자동 삭제</p>
+            <p className="text-[11px] text-slate-500">날짜별 참석 비율과 참여자 명단 한눈에 확인</p>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
+            <span className="text-xs font-black text-slate-900 flex items-center gap-1">
+              <ShieldCheck className="w-4 h-4 text-indigo-600" />
+              <span>90일 후 자동 삭제</span>
+            </span>
+            <p className="text-[11px] text-slate-500">최소 정보만 수집하고 90일 뒤 자동 파기</p>
           </div>
         </div>
       </section>
@@ -68,7 +73,7 @@ export const HomeBelowTheFold: React.FC = () => {
             약속 날짜 조율 4단계 프로세스
           </h2>
           <p className="text-xs text-slate-500">
-            후보 등록부터 결과 확정까지 한 흐름으로 이어집니다.
+            방 생성부터 최종 일정 확정·공유까지 한 흐름으로 이어집니다.
           </p>
         </div>
 
@@ -77,9 +82,9 @@ export const HomeBelowTheFold: React.FC = () => {
             <span className="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-black">
               1
             </span>
-            <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">모임 생성 & 후보일 지정</h3>
+            <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">모임 생성 & 방식 선택</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              모임 제목과 설명, 조율할 후보 날짜들을 달력에서 클릭하여 설정합니다.
+              방 제목과 날짜 조율 방식(기간 지정 또는 자유 선택)을 설정합니다.
             </p>
           </div>
 
@@ -89,7 +94,7 @@ export const HomeBelowTheFold: React.FC = () => {
             </span>
             <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">단톡방 초대 링크 공유</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              생성된 전용 초대 링크를 카카오톡 단톡방이나 친구에게 전달합니다.
+              생성된 전용 링크를 카카오톡 단톡방이나 메시지로 공유합니다.
             </p>
           </div>
 
@@ -97,9 +102,9 @@ export const HomeBelowTheFold: React.FC = () => {
             <span className="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-black">
               3
             </span>
-            <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">참여자의 가능 날짜 선택</h3>
+            <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">가능 날짜 투표</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              링크를 받은 친구들은 로그인 없이 닉네임만 입력하고 안 되는 날짜를 해제합니다.
+              참여자는 로그인 없이 닉네임만 입력하고 가능한 날짜를 선택합니다.
             </p>
           </div>
 
@@ -107,9 +112,9 @@ export const HomeBelowTheFold: React.FC = () => {
             <span className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs font-black">
               4
             </span>
-            <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">황금 날짜 자동 확인 & 확정</h3>
+            <h3 className="text-xs sm:text-sm font-extrabold text-slate-900">황금 날짜 확정 & 공유</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              최대 참석 인원 1위 날짜와 히트맵을 확인하고 방장이 최종 일정을 확정합니다.
+              자동 집계된 황금 날짜와 히트맵을 확인해 방장이 최종 일정을 확정·공유합니다.
             </p>
           </div>
         </div>

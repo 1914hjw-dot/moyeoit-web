@@ -9,7 +9,7 @@ import { HomeBelowTheFold } from '@/components/ui/HomeBelowTheFold';
 import { Footer } from '@/components/ui/Footer';
 import { NoticeBanner } from '@/components/ui/NoticeBanner';
 import { ScheduleType, DateSelectionMode } from '@/types/schema';
-import { Sparkles, Calendar, ArrowRight, Globe } from 'lucide-react';
+import { Sparkles, Calendar, ArrowRight } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
@@ -129,31 +129,8 @@ export default function HomePage() {
             친구들과 가능한 날짜를 모아 약속을 확정해요.
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
-            방장이 날짜를 지정하거나 참여자가 자유롭게 선택하는 2가지 모드 지원! 전원 참석 가능한 황금 날짜를 자동 계산하고 최종 모임 일정을 확정해 드립니다.
+            기간 지정과 자유 날짜 선택 2가지 모드를 지원하며, 가장 많은 인원이 참석 가능한 황금 날짜를 자동으로 찾아 드립니다.
           </p>
-        </section>
-
-        {/* Feature Banner Bar: 2가지 날짜 선택 방식 안내 */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-100 space-y-1">
-            <div className="flex items-center gap-1.5 font-extrabold text-indigo-950 text-xs sm:text-sm">
-              <Calendar className="w-4 h-4 text-indigo-600" />
-              <span>1. 기간 내에서 선택</span>
-            </div>
-            <p className="text-[11px] text-indigo-800 leading-relaxed">
-              방장이 지정한 후보 기간 안에서 참여자들이 참석 가능한 날짜를 투표합니다.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-100 space-y-1">
-            <div className="flex items-center gap-1.5 font-extrabold text-emerald-950 text-xs sm:text-sm">
-              <Globe className="w-4 h-4 text-emerald-600" />
-              <span>2. 자유 날짜 선택</span>
-            </div>
-            <p className="text-[11px] text-emerald-800 leading-relaxed">
-              방장이 후보 날짜를 정하지 않고, 참여자들이 각자 가능한 날짜를 자유롭게 선택합니다.
-            </p>
-          </div>
         </section>
 
         {/* Main Room Creation Form Section */}
@@ -227,52 +204,6 @@ export default function HomePage() {
               <ArrowRight className="w-4 h-4 text-white" />
             </button>
           </form>
-        </section>
-
-        {/* Core 6-Step Workflow Section */}
-        <section className="space-y-3 pt-2">
-          <div className="text-center space-y-0.5">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Workflow</h3>
-            <p className="text-sm font-black text-slate-900">모여잇은 이렇게 작동합니다 (6단계 흐름)</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
-              <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center text-xs font-black">01</span>
-              <h4 className="text-xs font-black text-slate-900">간단한 방 만들기</h4>
-              <p className="text-[11px] text-slate-500 leading-relaxed">로그인 없이 방 제목과 날짜 방식을 지정합니다.</p>
-            </div>
-
-            <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
-              <span className="w-6 h-6 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center text-xs font-black">02</span>
-              <h4 className="text-xs font-black text-slate-900">초대 링크 공유</h4>
-              <p className="text-[11px] text-slate-500 leading-relaxed">카카오톡 단톡방이나 메시지로 링크를 배포합니다.</p>
-            </div>
-
-            <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
-              <span className="w-6 h-6 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center text-xs font-black">03</span>
-              <h4 className="text-xs font-black text-slate-900">가능 날짜 투표</h4>
-              <p className="text-[11px] text-slate-500 leading-relaxed">참여자가 본인 닉네임으로 가능한 날짜에 응답합니다.</p>
-            </div>
-
-            <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
-              <span className="w-6 h-6 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-100 flex items-center justify-center text-xs font-black">04</span>
-              <h4 className="text-xs font-black text-slate-900">황금 날짜 자동 산정</h4>
-              <p className="text-[11px] text-slate-500 leading-relaxed">전원 참석(100%) 또는 최다 가능 날짜를 찾습니다.</p>
-            </div>
-
-            <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
-              <span className="w-6 h-6 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-100 flex items-center justify-center text-xs font-black">05</span>
-              <h4 className="text-xs font-black text-slate-900">방장 날짜 확정</h4>
-              <p className="text-[11px] text-slate-500 leading-relaxed">방장이 1위 황금 날짜 중 1개를 선택하여 확정합니다.</p>
-            </div>
-
-            <div className="sys-card p-4 space-y-1.5 bg-white border-slate-200/80 shadow-xs">
-              <span className="w-6 h-6 rounded-xl bg-indigo-50 text-indigo-800 border border-indigo-100 flex items-center justify-center text-xs font-black">06</span>
-              <h4 className="text-xs font-black text-slate-900">확정 결과 공유</h4>
-              <p className="text-[11px] text-slate-500 leading-relaxed">확정 축하 카드와 결과를 단톡방에 재공유합니다.</p>
-            </div>
-          </div>
         </section>
 
         {/* Demo Rooms Shortcuts */}
