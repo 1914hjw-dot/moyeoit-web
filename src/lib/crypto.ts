@@ -138,6 +138,44 @@ export async function verifyPassword(password: string, storedHash: string): Prom
   }
 }
 
+export async function verifyVoteOwnership(params: {
+  password?: string;
+  storedPasswordHash?: string | null;
+  voteToken?: string | null;
+  storedVoteToken?: string | null;
+  allowLegacyPinUpgrade?: boolean;
+}): Promise<{
+  authorized: boolean;
+  method: 'pin' | 'legacy_token' | 'none';
+  reason?: 'INVALID_PIN' | 'MISSING_OWNERSHIP';
+}> {
+  const cleanHash = (params.storedPasswordHash || '').trim();
+  const cleanPassword = (params.password || '').trim();
+
+  if (cleanHash) {
+    if (!cleanPassword) {
+      return { authorized: false, method: 'none', reason: 'INVALID_PIN' };
+    }
+    const isMatch = await verifyPassword(cleanPassword, cleanHash);
+    if (!isMatch) {
+      return { authorized: false, method: 'none', reason: 'INVALID_PIN' };
+    }
+    return { authorized: true, method: 'pin' };
+  }
+
+  if (cleanPassword && !(params.allowLegacyPinUpgrade && /^\d{4}$/.test(cleanPassword))) {
+    return { authorized: false, method: 'none', reason: 'INVALID_PIN' };
+  }
+
+  const cleanToken = (params.voteToken || '').trim();
+  const cleanStoredToken = (params.storedVoteToken || '').trim();
+  if (cleanToken && cleanStoredToken && timingSafeStringEqual(cleanToken, cleanStoredToken)) {
+    return { authorized: true, method: 'legacy_token' };
+  }
+
+  return { authorized: false, method: 'none', reason: 'MISSING_OWNERSHIP' };
+}
+
 export async function hashCapabilityToken(token: string): Promise<string> {
   return `${CAPABILITY_HASH_PREFIX}${await sha256(token)}`;
 }

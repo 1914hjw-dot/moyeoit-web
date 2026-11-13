@@ -107,7 +107,10 @@ export const SubmitVoteInputSchema = z.object({
         .min(1, { message: '닉네임을 입력해 주세요.' })
         .max(30, { message: '닉네임은 최대 30자까지 입력 가능합니다.' })
     ),
-  password: z.string().trim().max(20).optional().default(''),
+  password: z
+    .string()
+    .trim()
+    .regex(/^\d{4}$/, { message: '수정용 비밀번호는 숫자 4자리로 입력해 주세요.' }),
   vote_token: z.string().trim().max(100).optional().default(''),
   availability: z
     .record(z.string().max(100), AvailabilityStatusSchema)
@@ -133,7 +136,14 @@ export const DeleteVoteInputSchema = z.object({
         .min(1, { message: '닉네임을 입력해 주세요.' })
         .max(30, { message: '닉네임은 최대 30자까지 입력 가능합니다.' })
     ),
-  password: z.string().trim().max(20).optional().default(''),
+  password: z
+    .string()
+    .trim()
+    .refine((val) => val === '' || /^\d{4}$/.test(val), {
+      message: '비밀번호는 숫자 4자리로 입력해 주세요.',
+    })
+    .optional()
+    .default(''),
   vote_token: z.string().trim().max(100).optional().default(''),
 });
 

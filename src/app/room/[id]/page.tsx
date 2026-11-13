@@ -17,7 +17,7 @@ import {
   OfflineState,
   InvalidLinkState,
 } from '@/components/ui/StateViews';
-import { Vote as VoteIcon, ArrowLeft, Check, Edit3, Users, Crown, Trash2, AlertTriangle, X } from 'lucide-react';
+import { Vote as VoteIcon, ArrowLeft, Check, Edit3, Users, Crown, Trash2, AlertTriangle, X, UserPlus } from 'lucide-react';
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
@@ -68,6 +68,7 @@ export default function RoomDetailPage() {
 
   // My vote tracking
   const [myVote, setMyVote] = useState<Vote | null>(null);
+  const [lastSelectedVoteId, setLastSelectedVoteId] = useState<string | null>(null);
   const [showVoteForm, setShowVoteForm] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
 
@@ -76,6 +77,20 @@ export default function RoomDetailPage() {
   const [deletePin, setDeletePin] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteErrorMsg, setDeleteErrorMsg] = useState('');
+
+  const resolveVoteWithToken = useCallback(
+    (vote: Vote, targetRoom: Room): Vote => {
+      const identifiers = getRoomIdentifiers(roomId, targetRoom);
+      const voteToken =
+        typeof window !== 'undefined'
+          ? identifiers
+              .map((identifier) => localStorage.getItem(voteTokenStorageKey(identifier, vote.nickname)))
+              .find(Boolean)
+          : undefined;
+      return { ...vote, vote_token: voteToken || undefined };
+    },
+    [roomId]
+  );
 
   const loadRoomData = useCallback(async () => {
     if (!roomId) return;
@@ -110,15 +125,15 @@ export default function RoomDetailPage() {
         if (savedNickname && voteList.length > 0) {
           const found = voteList.find((v: Vote) => v.nickname.toLowerCase() === savedNickname.toLowerCase());
           if (found) {
-            const voteToken = identifiers
-              .map((identifier) => localStorage.getItem(voteTokenStorageKey(identifier, found.nickname)))
-              .find(Boolean);
-            setMyVote({ ...found, vote_token: voteToken || undefined });
+            setMyVote(resolveVoteWithToken(found, roomData.room as Room));
+            setLastSelectedVoteId(found.id);
           } else {
             setMyVote(null);
+            setLastSelectedVoteId(null);
           }
         } else {
           setMyVote(null);
+          setLastSelectedVoteId(null);
         }
       } else {
         setRoom(null);
@@ -129,7 +144,7 @@ export default function RoomDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [roomId]);
+  }, [roomId, resolveVoteWithToken]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadRoomData(), 0);
@@ -149,6 +164,22 @@ export default function RoomDetailPage() {
   const isVoted = Boolean(myVote);
   const isConfirmed = room.status === 'CONFIRMED';
   const isDemoRoom = room.id.startsWith('demo-room-');
+
+  const handleSelectVote = (vote: Vote, openEditForm: boolean) => {
+    const voteWithToken = resolveVoteWithToken(vote, room);
+    if (typeof window !== 'undefined') {
+      for (const identifier of getRoomIdentifiers(roomId, room)) {
+        localStorage.setItem(`moyeoit_voted_${identifier}`, vote.nickname);
+      }
+    }
+    setMyVote(voteWithToken);
+    setLastSelectedVoteId(vote.id);
+    setShowVoteForm(openEditForm);
+  };
+
+  const fallbackSavedVote = !myVote && lastSelectedVoteId
+    ? votes.find((v) => v.id === lastSelectedVoteId) || null
+    : null;
 
   const handleSubmitVote = async (input: SubmitVoteInput) => {
     const res = await fetch(`/api/rooms/${roomId}/votes`, {
@@ -185,6 +216,12 @@ export default function RoomDetailPage() {
     e.preventDefault();
     if (!myVote) return;
 
+    const requiresPin = myVote.has_password !== false;
+    if (requiresPin && !/^\d{4}$/.test(deletePin.trim())) {
+      setDeleteErrorMsg('비밀번호 숫자 4자리를 입력해 주세요.');
+      return;
+    }
+
     setIsDeleting(true);
     setDeleteErrorMsg('');
 
@@ -194,7 +231,7 @@ export default function RoomDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nickname: myVote.nickname,
-          password: deletePin.trim(),
+          password: requiresPin ? deletePin.trim() : '',
           vote_token: myVote.vote_token || '',
         }),
       });
@@ -212,6 +249,7 @@ export default function RoomDetailPage() {
       }
 
       setMyVote(null);
+      setLastSelectedVoteId(null);
       setShowDeleteModal(false);
       setDeletePin('');
       await loadRoomData();
@@ -338,57 +376,126 @@ export default function RoomDetailPage() {
                 실제 투표 흐름을 사용하려면 홈에서 새 모임방을 만들어 주세요.
               </p>
             </div>
-          ) : isVoted && !showVoteForm ? (
-            <div className="sys-card p-5 border-emerald-200 bg-emerald-50/60 space-y-3 shadow-sm rounded-3xl">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
-                  <Check className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-slate-900">
-                    {myVote?.nickname}님의 투표가 저장되었습니다.
-                  </h3>
-                  <p className="text-xs text-slate-600 mt-0.5">
-                    아래에서 최적 날짜 결과를 확인하거나 초대 링크를 친구에게 공유해보세요.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-2 border-t border-emerald-100 flex-wrap">
-                <MultiShareButton
-                  title={room.title}
-                  url={shareUrl}
-                  confirmedDate={isConfirmed && room.confirmed_date ? room.confirmed_date : undefined}
-                  className="flex-1 py-2.5"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => setShowVoteForm(true)}
-                  className="px-3 py-2.5 rounded-2xl bg-white text-slate-700 hover:bg-slate-100 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border border-slate-200"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>수정</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteModal(true)}
-                  className="px-3 py-2.5 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                  <span>삭제</span>
-                </button>
-              </div>
-            </div>
           ) : (
-            <div id="vote-form-section">
-              <GuestVoteForm
-                room={room}
-                existingVote={myVote}
-                onSubmitVote={handleSubmitVote}
-                onCancel={isVoted ? () => setShowVoteForm(false) : undefined}
-              />
+            <div className="space-y-3">
+              {votes.length > 0 && (
+                <div className="sys-card p-3.5 sm:p-4 bg-white border-slate-200/80 shadow-xs rounded-3xl space-y-2.5">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-slate-700">
+                      참여자 선택 <span className="text-[11px] font-medium text-slate-500">(본인 이름을 눌러 투표 수정·삭제)</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMyVote(null);
+                        setShowVoteForm(true);
+                      }}
+                      className="px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>다른 이름으로 투표하기</span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {votes.map((v) => {
+                      const isSelected = myVote?.id === v.id;
+                      return (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => handleSelectVote(v, false)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer border ${
+                            isSelected
+                              ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                              : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                          }`}
+                        >
+                          {v.nickname}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {isVoted && !showVoteForm ? (
+                <div className="sys-card p-5 border-emerald-200 bg-emerald-50/60 space-y-3 shadow-sm rounded-3xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
+                      <Check className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-900">
+                        {myVote?.nickname}님의 투표 내역
+                      </h3>
+                      <p className="text-xs text-slate-600 mt-0.5">
+                        아래에서 최적 날짜 결과를 확인하거나 초대 링크를 친구에게 공유해보세요.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2 border-t border-emerald-100 flex-wrap">
+                    <MultiShareButton
+                      title={room.title}
+                      url={shareUrl}
+                      confirmedDate={isConfirmed && room.confirmed_date ? room.confirmed_date : undefined}
+                      className="flex-1 py-2.5"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => setShowVoteForm(true)}
+                      className="px-3 py-2.5 rounded-2xl bg-white text-slate-700 hover:bg-slate-100 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border border-slate-200"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>수정</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteModal(true)}
+                      className="px-3 py-2.5 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                      <span>삭제</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMyVote(null);
+                        setShowVoteForm(true);
+                      }}
+                      className="px-3 py-2.5 rounded-2xl bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>다른 이름으로 투표</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div id="vote-form-section">
+                  <GuestVoteForm
+                    key={myVote?.id ?? 'new-vote'}
+                    room={room}
+                    existingVote={myVote}
+                    existingVotes={votes}
+                    onSelectExistingVote={(v) => handleSelectVote(v, true)}
+                    onSubmitVote={handleSubmitVote}
+                    onCancel={
+                      isVoted
+                        ? () => setShowVoteForm(false)
+                        : fallbackSavedVote
+                        ? () => {
+                            setMyVote(resolveVoteWithToken(fallbackSavedVote, room));
+                            setShowVoteForm(false);
+                          }
+                        : undefined
+                    }
+                  />
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -474,22 +581,32 @@ export default function RoomDetailPage() {
             )}
 
             <form onSubmit={handleDeleteVote} className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  수정용 비밀번호 4자리 <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="password"
-                  required
-                  inputMode="numeric"
-                  maxLength={4}
-                  autoComplete="off"
-                  value={deletePin}
-                  onChange={(e) => setDeletePin(e.target.value)}
-                  placeholder="숫자 4자리"
-                  className="w-full sys-input h-11 text-xs"
-                />
-              </div>
+              {myVote?.has_password !== false ? (
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    수정·삭제용 비밀번호 4자리 <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    inputMode="numeric"
+                    pattern="\d{4}"
+                    maxLength={4}
+                    autoComplete="off"
+                    value={deletePin}
+                    onChange={(e) => {
+                      setDeletePin(e.target.value.replace(/\D/g, '').slice(0, 4));
+                      if (deleteErrorMsg) setDeleteErrorMsg('');
+                    }}
+                    placeholder="숫자 4자리"
+                    className="w-full sys-input h-11 text-xs font-mono tracking-widest"
+                  />
+                </div>
+              ) : (
+                <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200/80 rounded-xl p-3">
+                  비밀번호 없이 생성된 이전 투표입니다. 삭제하시겠습니까?
+                </p>
+              )}
 
               <div className="flex items-center gap-2 pt-1">
                 <button

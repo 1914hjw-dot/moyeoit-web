@@ -6,8 +6,7 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { getVotesByRoomIdMock } from '@/lib/mockStore';
 import {
   createPasswordHash,
-  timingSafeStringEqual,
-  verifyPassword,
+  verifyVoteOwnership,
 } from '@/lib/crypto';
 import { getRoomById, isDemoRoomId, logAuditTrail } from './roomService';
 import { AppError, ConfigurationError } from '@/lib/errors';
@@ -27,6 +26,7 @@ export function toPublicVote(vote: Vote): PublicVote {
     id: vote.id,
     room_id: vote.room_id,
     nickname: vote.nickname,
+    has_password: Boolean(vote.password_hash),
     availability: vote.availability,
     note: vote.note,
     created_at: vote.created_at,
@@ -122,8 +122,9 @@ async function authorizeVoteMutation(
   nickname: string,
   existing: Vote,
   voteToken: string,
-  password: string
-): Promise<{ tokenMatch: boolean; passwordMatch: boolean }> {
+  password: string,
+  allowLegacyPinUpgrade: boolean = false
+): Promise<{ method: 'pin' | 'legacy_token' }> {
   const limit = await checkRateLimit(
     createRateLimitKey('vote-auth', `${roomId}:${nickname.toLocaleLowerCase('ko-KR')}`),
     12,
@@ -133,24 +134,25 @@ async function authorizeVoteMutation(
     throw new AppError('소유권 확인 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.', 429, 'RATE_LIMITED');
   }
 
-  const tokenMatch = Boolean(
-    voteToken && existing.vote_token && timingSafeStringEqual(voteToken, existing.vote_token)
-  );
-  const passwordMatch = Boolean(
-    password && existing.password_hash && (await verifyPassword(password, existing.password_hash))
-  );
+  const result = await verifyVoteOwnership({
+    password,
+    storedPasswordHash: existing.password_hash,
+    voteToken,
+    storedVoteToken: existing.vote_token,
+    allowLegacyPinUpgrade,
+  });
 
-  if (!tokenMatch && !passwordMatch) {
+  if (!result.authorized || result.method === 'none') {
     throw new AppError(
       existing.password_hash
-        ? '투표 소유권 토큰 또는 PIN이 올바르지 않습니다.'
-        : '이전 투표의 소유권을 확인할 수 없습니다. 새 닉네임으로 투표해 주세요.',
+        ? '비밀번호(PIN) 숫자 4자리가 일치하지 않습니다.'
+        : '이전 투표의 소유권을 확인할 수 없습니다. 다른 닉네임으로 새로 투표해 주세요.',
       403,
       'VOTE_AUTH_FAILED'
     );
   }
 
-  return { tokenMatch, passwordMatch };
+  return { method: result.method };
 }
 
 export async function getVotesByRoomId(roomId: string): Promise<PublicVote[]> {
@@ -165,7 +167,7 @@ export async function getVotesByRoomId(roomId: string): Promise<PublicVote[]> {
 
   const { data, error } = await supabaseServer
     .from('votes')
-    .select('id, room_id, nickname, availability, note, created_at, updated_at')
+    .select('id, room_id, nickname, password_hash, availability, note, created_at, updated_at')
     .eq('room_id', targetRoom.id)
     .is('deleted_at', null)
     .order('created_at', { ascending: true });
@@ -197,12 +199,11 @@ export async function submitVote(input: unknown): Promise<OwnedVote> {
       validated.nickname,
       existing,
       validated.vote_token,
-      validated.password
+      validated.password,
+      true
     );
     const voteToken = existing.vote_token || generateVoteToken();
-    const passwordHash = validated.password
-      ? await createPasswordHash(validated.password)
-      : existing.password_hash;
+    const passwordHash = await createPasswordHash(validated.password);
 
     const { data, error } = await supabaseServer
       .from('votes')
@@ -214,6 +215,7 @@ export async function submitVote(input: unknown): Promise<OwnedVote> {
         updated_at: new Date().toISOString(),
       })
       .eq('id', existing.id)
+      .is('deleted_at', null)
       .select('*')
       .single();
     if (error || !data) {
@@ -224,13 +226,13 @@ export async function submitVote(input: unknown): Promise<OwnedVote> {
     await logAuditTrail('VOTE_UPDATED', data.id, {
       room_id: data.room_id,
       nickname: data.nickname,
-      authorization: authorization.tokenMatch ? 'token' : 'pin',
+      authorization: authorization.method,
     });
     return toOwnedVote(mapVoteRecord(data));
   }
 
   const voteToken = generateVoteToken();
-  const passwordHash = validated.password ? await createPasswordHash(validated.password) : '';
+  const passwordHash = await createPasswordHash(validated.password);
   const { data, error } = await supabaseServer
     .from('votes')
     .insert({

@@ -8,6 +8,8 @@ import { CalendarVoteSelector } from '@/components/ui/CalendarVoteSelector';
 interface GuestVoteFormProps {
   room: Room;
   existingVote?: Vote | null;
+  existingVotes?: Vote[];
+  onSelectExistingVote?: (vote: Vote) => void;
   onSubmitVote: (input: SubmitVoteInput) => Promise<void> | void;
   onCancel?: () => void;
 }
@@ -15,6 +17,8 @@ interface GuestVoteFormProps {
 export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
   room,
   existingVote,
+  existingVotes = [],
+  onSelectExistingVote,
   onSubmitVote,
   onCancel,
 }) => {
@@ -62,11 +66,31 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
     return initial;
   });
 
+  const trimmedNickname = nickname.trim();
+  const matchedExistingVote =
+    !existingVote && trimmedNickname
+      ? existingVotes.find(
+          (v) => v.nickname.trim().toLocaleLowerCase('ko-KR') === trimmedNickname.toLocaleLowerCase('ko-KR')
+        )
+      : undefined;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-    if (!nickname.trim()) {
-      alert('이름 또는 닉네임을 입력해 주세요.');
+    if (!trimmedNickname) {
+      setErrorMsg('이름 또는 닉네임을 입력해 주세요.');
+      return;
+    }
+
+    if (matchedExistingVote) {
+      setErrorMsg(
+        `이미 투표한 이름입니다. 본인 투표 수정 버튼을 누르거나 다른 닉네임(예: ${matchedExistingVote.nickname}B)을 입력해 주세요.`
+      );
+      return;
+    }
+
+    if (!/^\d{4}$/.test(password.trim())) {
+      setErrorMsg('수정·삭제용 비밀번호를 숫자 4자리로 입력해 주세요.');
       return;
     }
 
@@ -75,7 +99,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
     );
 
     if (isFreeMode && possibleKeys.length === 0) {
-      alert('최소 1개 이상의 가능 날짜를 캘린더에서 클릭해 선택해 주세요.');
+      setErrorMsg('최소 1개 이상의 가능 날짜를 캘린더에서 클릭해 선택해 주세요.');
       return;
     }
 
@@ -83,7 +107,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
     try {
       await onSubmitVote({
         room_id: room.id,
-        nickname: nickname.trim(),
+        nickname: trimmedNickname,
         password: password.trim(),
         vote_token: existingVote?.vote_token || '',
         availability,
@@ -134,21 +158,96 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
           </div>
         )}
 
-        {/* 1. Essential Input: Nickname */}
-        <div>
-          <label className="text-xs font-bold text-slate-700 block mb-1">
-            이름 / 닉네임 <span className="text-rose-500">*</span>
-          </label>
-          <input
-            ref={nicknameInputRef}
-            type="text"
-            required
-            autoComplete="name"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            placeholder="이름 또는 닉네임을 입력하세요"
-            className="w-full sys-input h-11 text-xs sm:text-sm font-semibold"
-          />
+        {/* 1. Essential Inputs: Nickname & 4-Digit PIN */}
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-bold text-slate-700 block mb-1">
+              이름 / 닉네임 <span className="text-rose-500">*</span>
+            </label>
+            <input
+              ref={nicknameInputRef}
+              type="text"
+              required
+              readOnly={Boolean(existingVote)}
+              autoComplete="name"
+              value={nickname}
+              onChange={(e) => {
+                setNickname(e.target.value);
+                if (errorMsg) setErrorMsg('');
+              }}
+              placeholder="이름 또는 닉네임을 입력하세요"
+              className={`w-full sys-input h-11 text-xs sm:text-sm font-semibold ${
+                existingVote ? 'bg-slate-100 text-slate-700 cursor-not-allowed' : ''
+              }`}
+            />
+
+            {matchedExistingVote && (
+              <div className="mt-2 p-3 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
+                <p className="text-xs text-amber-900 leading-relaxed">
+                  이미 <strong className="font-black">&apos;{matchedExistingVote.nickname}&apos;</strong> 이름으로 등록된 투표가 있습니다. 본인의 투표를 수정하려면 아래 버튼을 누르고, 동명이인이라면 구분되는 이름(예: {matchedExistingVote.nickname}B)을 입력해 주세요.
+                </p>
+                {onSelectExistingVote && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectExistingVote(matchedExistingVote)}
+                    className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    이 이름으로 내 투표 수정하기
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-bold text-slate-700 block">
+                {existingVote
+                  ? existingVote.has_password === false
+                    ? '새 비밀번호 설정 (숫자 4자리)'
+                    : '비밀번호 확인 (숫자 4자리)'
+                  : '수정·삭제용 비밀번호 (숫자 4자리)'}{' '}
+                <span className="text-rose-500">*</span>
+              </label>
+              <span className="text-[10px] text-emerald-600 flex items-center gap-0.5 font-bold">
+                <ShieldCheck className="w-3 h-3" />
+                <span>암호화 보관</span>
+              </span>
+            </div>
+
+            <div className="relative">
+              <input
+                type={showPasswordText ? 'text' : 'password'}
+                inputMode="numeric"
+                pattern="\d{4}"
+                maxLength={4}
+                required
+                autoComplete={existingVote ? 'current-password' : 'new-password'}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value.replace(/\D/g, '').slice(0, 4));
+                  if (errorMsg) setErrorMsg('');
+                }}
+                placeholder="숫자 4자리"
+                className="w-full sys-input h-11 text-xs sm:text-sm bg-white pr-10 font-mono tracking-widest"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasswordText((prev) => !prev)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-lg transition-colors cursor-pointer"
+                aria-label={showPasswordText ? '비밀번호 숨기기' : '비밀번호 보기'}
+              >
+                {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1">
+              {existingVote
+                ? existingVote.has_password === false
+                  ? '이전에 비밀번호 없이 등록된 투표입니다. 앞으로 사용할 숫자 4자리 비밀번호를 입력해 주세요.'
+                  : '투표 등록 시 설정한 숫자 4자리 비밀번호를 입력해야 수정됩니다.'
+                : '투표를 수정하거나 삭제할 때 본인 확인용으로 사용됩니다.'}
+            </p>
+          </div>
         </div>
 
         {/* 2. Core Action: Candidate Date Selection Calendar */}
@@ -166,7 +265,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
           />
         </div>
 
-        {/* 3. Optional Accordion (Note & PIN Password) */}
+        {/* 3. Optional Accordion (Note) */}
         <div>
           <button
             type="button"
@@ -175,7 +274,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
           >
             <span className="flex items-center gap-1.5">
               <MessageSquare className="w-3.5 h-3.5 text-slate-600" />
-              <span>+ 메모 및 비밀번호 (선택)</span>
+              <span>+ 한줄 메모 (선택)</span>
             </span>
             {showOptionalFields ? (
               <ChevronUp className="w-4 h-4 text-slate-400" />
@@ -185,7 +284,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
           </button>
 
           {showOptionalFields && (
-            <div className="mt-2 p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
+            <div className="mt-2 p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80">
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">한줄 메모</label>
                 <input
@@ -196,37 +295,6 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
                   placeholder="예: 27일은 저녁 7시 이후 가능"
                   className="w-full sys-input h-10 text-xs bg-white"
                 />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-700 block">수정용 비밀번호 4자리</label>
-                  <span className="text-[10px] text-emerald-600 flex items-center gap-0.5 font-bold">
-                    <ShieldCheck className="w-3 h-3" />
-                    <span>암호화 보관</span>
-                  </span>
-                </div>
-
-                <div className="relative">
-                  <input
-                    type={showPasswordText ? 'text' : 'password'}
-                    inputMode="numeric"
-                    maxLength={4}
-                    autoComplete={existingVote ? 'current-password' : 'new-password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="숫자 4자리"
-                    className="w-full sys-input h-10 text-xs bg-white pr-10 font-mono tracking-widest"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswordText((prev) => !prev)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-lg transition-colors cursor-pointer"
-                    aria-label={showPasswordText ? '비밀번호 숨기기' : '비밀번호 보기'}
-                  >
-                    {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
               </div>
             </div>
           )}

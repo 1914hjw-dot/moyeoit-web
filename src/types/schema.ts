@@ -35,6 +35,7 @@ export interface Vote {
   vote_token?: string | null; // Cryptographic UUID token for direct vote ownership
   nickname: string;
   password_hash?: string;
+  has_password?: boolean;
   availability: Record<string, AvailabilityStatus>; // Key: "YYYY-MM-DD" or "YYYY-MM-DD_TimeSlot"
   note?: string;
   created_at: string;
