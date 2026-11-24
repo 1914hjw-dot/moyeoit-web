@@ -63,16 +63,13 @@ test('constant-time string comparison handles equal and unequal lengths', () => 
   assert.equal(timingSafeStringEqual('short', 'shorter'), false);
 });
 
-test('PIN-protected votes require a valid 4-digit PIN even when vote_token matches', async () => {
+test('PIN-protected votes require a valid 4-digit PIN regardless of client tokens', async () => {
   const passwordHash = await createPasswordHash('4821');
-  const storedToken = 'cached-device-token';
 
   assert.deepEqual(
     await verifyVoteOwnership({
       password: '',
       storedPasswordHash: passwordHash,
-      voteToken: storedToken,
-      storedVoteToken: storedToken,
     }),
     { authorized: false, method: 'none', reason: 'INVALID_PIN' }
   );
@@ -81,8 +78,6 @@ test('PIN-protected votes require a valid 4-digit PIN even when vote_token match
     await verifyVoteOwnership({
       password: '????',
       storedPasswordHash: passwordHash,
-      voteToken: storedToken,
-      storedVoteToken: storedToken,
     }),
     { authorized: false, method: 'none', reason: 'INVALID_PIN' }
   );
@@ -91,8 +86,6 @@ test('PIN-protected votes require a valid 4-digit PIN even when vote_token match
     await verifyVoteOwnership({
       password: '0000',
       storedPasswordHash: passwordHash,
-      voteToken: storedToken,
-      storedVoteToken: storedToken,
     }),
     { authorized: false, method: 'none', reason: 'INVALID_PIN' }
   );
@@ -101,68 +94,36 @@ test('PIN-protected votes require a valid 4-digit PIN even when vote_token match
     await verifyVoteOwnership({
       password: '4821',
       storedPasswordHash: passwordHash,
-      voteToken: '',
-      storedVoteToken: storedToken,
     }),
     { authorized: true, method: 'pin' }
   );
 });
 
-test('legacy votes without PIN allow matching vote_token only when no invalid password is given', async () => {
-  const storedToken = 'legacy-device-token';
-
-  assert.deepEqual(
-    await verifyVoteOwnership({
-      password: '????',
-      storedPasswordHash: '',
-      voteToken: storedToken,
-      storedVoteToken: storedToken,
-    }),
-    { authorized: false, method: 'none', reason: 'INVALID_PIN' }
-  );
-
+test('votes without stored password hash never authorize via cached tokens', async () => {
   assert.deepEqual(
     await verifyVoteOwnership({
       password: '',
       storedPasswordHash: '',
-      voteToken: 'wrong-token',
-      storedVoteToken: storedToken,
     }),
     { authorized: false, method: 'none', reason: 'MISSING_OWNERSHIP' }
   );
 
   assert.deepEqual(
     await verifyVoteOwnership({
-      password: '',
-      storedPasswordHash: '',
-      voteToken: storedToken,
-      storedVoteToken: storedToken,
-    }),
-    { authorized: true, method: 'legacy_token' }
-  );
-
-  assert.deepEqual(
-    await verifyVoteOwnership({
       password: '1234',
       storedPasswordHash: '',
-      voteToken: storedToken,
-      storedVoteToken: storedToken,
-      allowLegacyPinUpgrade: true,
     }),
-    { authorized: true, method: 'legacy_token' }
+    { authorized: false, method: 'none', reason: 'MISSING_OWNERSHIP' }
   );
 });
 
-test('legacy SHA-256 PIN hashes in existing DB still verify without vote_token and reject wrong PINs', async () => {
+test('legacy SHA-256 PIN hashes in existing DB still verify and reject wrong PINs', async () => {
   const legacyHash = await hashPassword('7391');
-  const storedToken = 'cached-device-token';
 
   assert.deepEqual(
     await verifyVoteOwnership({
       password: '',
       storedPasswordHash: legacyHash,
-      voteToken: storedToken,
-      storedVoteToken: storedToken,
     }),
     { authorized: false, method: 'none', reason: 'INVALID_PIN' }
   );
@@ -171,8 +132,6 @@ test('legacy SHA-256 PIN hashes in existing DB still verify without vote_token a
     await verifyVoteOwnership({
       password: '7391',
       storedPasswordHash: legacyHash,
-      voteToken: '',
-      storedVoteToken: storedToken,
     }),
     { authorized: true, method: 'pin' }
   );
@@ -228,29 +187,47 @@ test('vote PIN progressive lockout blocks on 5th failure and clears short-term b
     },
   };
 
+  const target = {
+    roomId: 'room-lock',
+    voteId: '11111111-1111-4111-8111-111111111111',
+    clientIp: '203.0.113.10',
+    nickname: 'minsu',
+  };
+
   for (let i = 0; i < 4; i += 1) {
-    await assertVotePinNotLockedWithDeps(deps, 'room-lock', 'minsu');
-    await recordVotePinFailureWithDeps(deps, 'room-lock', 'minsu');
+    await assertVotePinNotLockedWithDeps(deps, target);
+    await recordVotePinFailureWithDeps(deps, target);
   }
 
-  await assertVotePinNotLockedWithDeps(deps, 'room-lock', 'minsu');
+  await assertVotePinNotLockedWithDeps(deps, target);
 
   await assert.rejects(
-    () => recordVotePinFailureWithDeps(deps, 'room-lock', 'minsu'),
+    () => recordVotePinFailureWithDeps(deps, target),
     (error: unknown) =>
-      error instanceof AppError && error.status === 429 && error.code === 'VOTE_PIN_LOCKED'
+      error instanceof AppError &&
+      error.status === 429 &&
+      error.code === 'VOTE_PIN_LOCKED' &&
+      typeof error.retryAfterSeconds === 'number' &&
+      error.retryAfterSeconds > 0
   );
 
   await assert.rejects(
-    () => assertVotePinNotLockedWithDeps(deps, 'room-lock', 'minsu'),
+    () => assertVotePinNotLockedWithDeps(deps, target),
     (error: unknown) =>
-      error instanceof AppError && error.status === 429 && error.code === 'VOTE_PIN_LOCKED'
+      error instanceof AppError &&
+      error.status === 429 &&
+      error.code === 'VOTE_PIN_LOCKED' &&
+      typeof error.retryAfterSeconds === 'number' &&
+      error.retryAfterSeconds > 0
   );
 
   assert.equal(auditEvents.length, 5);
 
-  await clearVotePinFailuresOnSuccessWithDeps(deps, 'room-lock', 'minsu');
-  await assertVotePinNotLockedWithDeps(deps, 'room-lock', 'minsu');
+  await clearVotePinFailuresOnSuccessWithDeps(deps, {
+    roomId: target.roomId,
+    voteId: target.voteId,
+  });
+  await assertVotePinNotLockedWithDeps(deps, target);
 });
 
 test('UGC validation returns ZodError (400) instead of throwing Error and avoids false positives', () => {

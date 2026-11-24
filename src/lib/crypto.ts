@@ -141,42 +141,51 @@ export async function verifyPassword(password: string, storedHash: string): Prom
   }
 }
 
+export function hasStoredPasswordHash(storedHash?: string | null): boolean {
+  return Boolean((storedHash || '').trim());
+}
+
+export function needsPasswordHashRehash(storedHash?: string | null): boolean {
+  const cleanHash = (storedHash || '').trim();
+  if (!cleanHash) return false;
+
+  const parts = cleanHash.split('$');
+  if (parts.length !== 4) return true;
+
+  const [prefix, iterationText, saltText, expectedText] = parts;
+  return (
+    prefix !== PASSWORD_HASH_PREFIX ||
+    iterationText !== PASSWORD_HASH_ITERATIONS.toString() ||
+    !saltText ||
+    !expectedText
+  );
+}
+
 export async function verifyVoteOwnership(params: {
   password?: string;
   storedPasswordHash?: string | null;
-  voteToken?: string | null;
-  storedVoteToken?: string | null;
-  allowLegacyPinUpgrade?: boolean;
 }): Promise<{
   authorized: boolean;
-  method: 'pin' | 'legacy_token' | 'none';
+  method: 'pin' | 'none';
   reason?: 'INVALID_PIN' | 'MISSING_OWNERSHIP';
 }> {
   const cleanHash = (params.storedPasswordHash || '').trim();
   const cleanPassword = (params.password || '').trim();
 
-  if (cleanHash) {
-    if (!cleanPassword) {
-      return { authorized: false, method: 'none', reason: 'INVALID_PIN' };
-    }
-    const isMatch = await verifyPassword(cleanPassword, cleanHash);
-    if (!isMatch) {
-      return { authorized: false, method: 'none', reason: 'INVALID_PIN' };
-    }
-    return { authorized: true, method: 'pin' };
+  if (!cleanHash) {
+    return { authorized: false, method: 'none', reason: 'MISSING_OWNERSHIP' };
   }
 
-  if (cleanPassword && !(params.allowLegacyPinUpgrade && /^\d{4}$/.test(cleanPassword))) {
+  if (!cleanPassword) {
     return { authorized: false, method: 'none', reason: 'INVALID_PIN' };
   }
 
-  const cleanToken = (params.voteToken || '').trim();
-  const cleanStoredToken = (params.storedVoteToken || '').trim();
-  if (cleanToken && cleanStoredToken && timingSafeStringEqual(cleanToken, cleanStoredToken)) {
-    return { authorized: true, method: 'legacy_token' };
+  const isMatch = await verifyPassword(cleanPassword, cleanHash);
+  if (!isMatch) {
+    return { authorized: false, method: 'none', reason: 'INVALID_PIN' };
   }
 
-  return { authorized: false, method: 'none', reason: 'MISSING_OWNERSHIP' };
+  return { authorized: true, method: 'pin' };
 }
 
 export async function hashCapabilityToken(token: string): Promise<string> {

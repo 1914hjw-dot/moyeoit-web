@@ -232,6 +232,7 @@ export function getVotesByRoomIdMock(roomId: string): Vote[] {
     .filter((v) => v.room_id === cleanRoomId)
     .map((v) => ({
       ...v,
+      has_password: Boolean((v.password_hash || '').trim()),
       password_hash: undefined,
     }));
 }

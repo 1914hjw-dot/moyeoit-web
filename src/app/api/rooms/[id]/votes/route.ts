@@ -3,6 +3,7 @@ import { deleteVote, getVotesByRoomId, submitVote } from '@/lib/services/voteSer
 import {
   enforceRateLimit,
   errorResponse,
+  getClientIp,
   parseJsonBody,
   requireJsonRequest,
 } from '@/lib/http/api';
@@ -33,13 +34,18 @@ export async function POST(
 ) {
   const contentTypeError = requireJsonRequest(request);
   if (contentTypeError) return contentTypeError;
-  const rateLimitError = await enforceRateLimit(request, 'vote-write', 15);
+  const rateLimitError = await enforceRateLimit(request, 'vote-write', 15, 60_000, {
+    failClosed: true,
+  });
   if (rateLimitError) return rateLimitError;
 
   try {
     const { id } = await params;
     const body = await parseJsonBody<Record<string, unknown>>(request);
-    const vote = await submitVote({ ...body, room_id: id });
+    const vote = await submitVote(
+      { ...body, room_id: id },
+      { clientIp: getClientIp(request) }
+    );
     return NextResponse.json({ success: true, vote }, { status: 201 });
   } catch (error) {
     console.error('API /api/rooms/[id]/votes POST failed:', error);
@@ -61,7 +67,10 @@ export async function DELETE(
   try {
     const { id } = await params;
     const body = await parseJsonBody<Record<string, unknown>>(request);
-    await deleteVote({ ...body, room_id: id });
+    await deleteVote(
+      { ...body, room_id: id },
+      { clientIp: getClientIp(request) }
+    );
     return NextResponse.json({ success: true, message: '투표가 성공적으로 삭제되었습니다.' });
   } catch (error) {
     console.error('API /api/rooms/[id]/votes DELETE failed:', error);

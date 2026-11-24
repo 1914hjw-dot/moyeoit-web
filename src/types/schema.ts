@@ -6,6 +6,8 @@ export type RoomStatus = 'OPEN' | 'CONFIRMED' | 'DELETED';
 
 export type DateSelectionMode = 'RANGE' | 'FREE';
 
+export type VoteMutationIntent = 'create' | 'update';
+
 export interface Room {
   id: string; // UUID v4 for new rooms, legacy string for old rooms
   legacy_slug?: string | null; // Nullable legacy slug for backward compatibility
@@ -32,9 +34,9 @@ export interface CreatedRoom extends PublicRoom {
 export interface Vote {
   id: string;
   room_id: string;
-  vote_token?: string | null; // Cryptographic UUID token for direct vote ownership
+  vote_token?: string | null; // Legacy DB column kept for zero-downtime compatibility; never used for auth
   nickname: string;
-  password_hash?: string;
+  password_hash?: string | null;
   has_password?: boolean;
   availability: Record<string, AvailabilityStatus>; // Key: "YYYY-MM-DD" or "YYYY-MM-DD_TimeSlot"
   note?: string;
@@ -44,7 +46,6 @@ export interface Vote {
 }
 
 export type PublicVote = Omit<Vote, 'vote_token' | 'password_hash' | 'deleted_at'>;
-export type OwnedVote = Omit<Vote, 'password_hash' | 'deleted_at'>;
 
 export interface HeatmapCellData {
   key: string;
@@ -104,18 +105,19 @@ export interface ConfirmRoomInput {
 
 export interface SubmitVoteInput {
   room_id: string;
+  intent?: VoteMutationIntent;
+  vote_id?: string;
   nickname: string;
   password?: string;
-  vote_token?: string;
   availability: Record<string, AvailabilityStatus>;
   note?: string;
 }
 
 export interface DeleteVoteInput {
   room_id: string;
-  nickname: string;
+  vote_id?: string;
+  nickname?: string;
   password?: string;
-  vote_token?: string;
 }
 
 export interface AuditLog {

@@ -41,7 +41,10 @@ const IN_MEMORY_STORE = new Map<string, MemoryRateLimitRecord>();
 
 const SENSITIVE_SCOPE_PREFIXES = [
   'vote-auth:',
+  'vote-write:',
   'vote-pin-fail',
+  'vote-pin-ip-fail',
+  'vote-legacy-mutation:',
   'room-confirm:',
   'admin-login',
   'admin-mfa',
