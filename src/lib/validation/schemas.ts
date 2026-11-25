@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { canonicalizeNickname } from './nickname.ts';
 import { validateAndSanitizeUGC } from './ugcFilter.ts';
 
 function ugcFilteredString(fieldName: string) {
@@ -27,6 +28,15 @@ function isValidDateString(value: string): boolean {
 }
 
 const RoomIdSchema = z.string().trim().min(1, { message: '올바른 방 번호가 필요합니다.' }).max(100);
+const VoteIdSchema = z.string().trim().uuid({ message: '올바른 투표 식별자가 아닙니다.' });
+const NicknameSchema = ugcFilteredString('닉네임')
+  .transform((val) => canonicalizeNickname(val))
+  .pipe(
+    z
+      .string()
+      .min(1, { message: '닉네임을 입력해 주세요.' })
+      .max(30, { message: '닉네임은 최대 30자까지 입력 가능합니다.' })
+  );
 
 export const ScheduleTypeSchema = z.enum(['date_only', 'date_time']);
 
@@ -92,48 +102,73 @@ export const ConfirmRoomInputSchema = z.object({
   host_secret: z.string().trim().max(200).optional().default(''),
 });
 
-export const SubmitVoteInputSchema = z.object({
-  room_id: RoomIdSchema,
-  nickname: ugcFilteredString('닉네임').pipe(
-    z
+export const SubmitVoteInputSchema = z
+  .object({
+    room_id: RoomIdSchema,
+    intent: z.enum(['create', 'update']).optional(),
+    vote_id: VoteIdSchema.optional(),
+    nickname: NicknameSchema,
+    password: z
       .string()
-      .min(1, { message: '닉네임을 입력해 주세요.' })
-      .max(30, { message: '닉네임은 최대 30자까지 입력 가능합니다.' })
-  ),
-  password: z
-    .string()
-    .trim()
-    .regex(/^\d{4}$/, { message: '수정용 비밀번호는 숫자 4자리로 입력해 주세요.' }),
-  vote_token: z.string().trim().max(100).optional().default(''),
-  availability: z
-    .record(z.string().max(100), AvailabilityStatusSchema)
-    .refine((availability) => Object.keys(availability).length <= 600, {
-      message: '한 번에 등록할 수 있는 응답 항목이 너무 많습니다.',
-    }),
-  note: ugcFilteredString('한줄 메모')
-    .pipe(z.string().max(200, { message: '한줄 메모는 최대 200자까지 입력 가능합니다.' }))
-    .optional()
-    .default(''),
-});
+      .trim()
+      .regex(/^\d{4}$/, { message: '수정·삭제용 비밀번호는 숫자 4자리로 입력해 주세요.' }),
+    // Accepted for rolling-deploy backward compatibility; ignored by server auth.
+    vote_token: z.string().trim().max(100).optional().default(''),
+    availability: z
+      .record(z.string().max(100), AvailabilityStatusSchema)
+      .refine((availability) => Object.keys(availability).length <= 600, {
+        message: '한 번에 등록할 수 있는 응답 항목이 너무 많습니다.',
+      }),
+    note: ugcFilteredString('한줄 메모')
+      .pipe(z.string().max(200, { message: '한줄 메모는 최대 200자까지 입력 가능합니다.' }))
+      .optional()
+      .default(''),
+  })
+  .superRefine((data, ctx) => {
+    if (data.intent === 'update' && !data.vote_id) {
+      ctx.addIssue({
+        code: 'custom',
+        message: '수정할 투표 식별자가 필요합니다.',
+        path: ['vote_id'],
+      });
+    }
+    if (data.intent === 'create' && data.vote_id) {
+      ctx.addIssue({
+        code: 'custom',
+        message: '신규 투표에는 투표 식별자를 지정할 수 없습니다.',
+        path: ['vote_id'],
+      });
+    }
+  });
 
-export const DeleteVoteInputSchema = z.object({
-  room_id: RoomIdSchema,
-  nickname: ugcFilteredString('닉네임').pipe(
-    z
+export const DeleteVoteInputSchema = z
+  .object({
+    room_id: RoomIdSchema,
+    vote_id: VoteIdSchema.optional(),
+    nickname: z.preprocess(
+      (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+      NicknameSchema.optional()
+    ),
+    password: z
       .string()
-      .min(1, { message: '닉네임을 입력해 주세요.' })
-      .max(30, { message: '닉네임은 최대 30자까지 입력 가능합니다.' })
-  ),
-  password: z
-    .string()
-    .trim()
-    .refine((val) => val === '' || /^\d{4}$/.test(val), {
-      message: '비밀번호는 숫자 4자리로 입력해 주세요.',
-    })
-    .optional()
-    .default(''),
-  vote_token: z.string().trim().max(100).optional().default(''),
-});
+      .trim()
+      .refine((val) => val === '' || /^\d{4}$/.test(val), {
+        message: '비밀번호는 숫자 4자리로 입력해 주세요.',
+      })
+      .optional()
+      .default(''),
+    // Accepted for rolling-deploy backward compatibility; ignored by server auth.
+    vote_token: z.string().trim().max(100).optional().default(''),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.vote_id && !data.nickname) {
+      ctx.addIssue({
+        code: 'custom',
+        message: '삭제할 투표를 선택하거나 닉네임을 입력해 주세요.',
+        path: ['nickname'],
+      });
+    }
+  });
 
 export type CreateRoomInputZod = z.infer<typeof CreateRoomInputSchema>;
 export type ConfirmRoomInputZod = z.infer<typeof ConfirmRoomInputSchema>;

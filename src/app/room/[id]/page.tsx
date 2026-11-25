@@ -5,6 +5,13 @@ import { useParams, useRouter } from 'next/navigation';
 import { Room, Vote, SubmitVoteInput } from '@/types/schema';
 import { computeHeatmapData } from '@/lib/analytics';
 import { trackRoomJoin, trackVoteSubmit, trackRoomConfirmed } from '@/lib/gtag';
+import {
+  clearLastVoterHint,
+  findHintedVote,
+  getLastVoterHint,
+  purgeLegacyVoteTokens,
+  saveLastVoterHint,
+} from '@/lib/client/voterHintStorage';
 import { GoldenDateCard } from '@/components/ui/GoldenDateCard';
 import { ConfirmedResultCard } from '@/components/ui/RoomDetail/ConfirmedResultCard';
 import { MultiShareButton } from '@/components/ui/MultiShareButton';
@@ -27,10 +34,6 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 function getRoomIdentifiers(roomId: string, room: Room): string[] {
   return Array.from(new Set([roomId, room.id, room.legacy_slug].filter((id): id is string => Boolean(id))));
-}
-
-function voteTokenStorageKey(roomIdentifier: string, nickname: string): string {
-  return `moyeoit_vote_token_${roomIdentifier}_${nickname.trim().toLocaleLowerCase('ko-KR')}`;
 }
 
 function subscribeConnectivity(callback: () => void): () => void {
@@ -68,7 +71,7 @@ export default function RoomDetailPage() {
   // Host role tracking
   const [isHost, setIsHost] = useState(false);
 
-  // My vote tracking
+  // Selected participant tracking (UI selection only; never used as authentication)
   const [myVote, setMyVote] = useState<Vote | null>(null);
   const [lastSelectedVoteId, setLastSelectedVoteId] = useState<string | null>(null);
   const [showVoteForm, setShowVoteForm] = useState(false);
@@ -80,75 +83,70 @@ export default function RoomDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteErrorMsg, setDeleteErrorMsg] = useState('');
 
-  const resolveVoteWithToken = useCallback(
-    (vote: Vote, targetRoom: Room): Vote => {
-      const identifiers = getRoomIdentifiers(roomId, targetRoom);
-      const voteToken =
-        typeof window !== 'undefined'
-          ? identifiers
-              .map((identifier) => localStorage.getItem(voteTokenStorageKey(identifier, vote.nickname)))
+  const fetchLatestVotes = useCallback(async (): Promise<Vote[]> => {
+    if (!roomId) return [];
+    const votesRes = await fetch(`/api/rooms/${roomId}/votes`, { cache: 'no-store' });
+    const votesData = await votesRes.json();
+    return votesRes.ok && votesData.success && Array.isArray(votesData.votes)
+      ? (votesData.votes as Vote[])
+      : [];
+  }, [roomId]);
+
+  const loadRoomData = useCallback(
+    async (preferredVoteId?: string | null) => {
+      if (!roomId) return;
+      try {
+        const roomRes = await fetch(`/api/rooms/${roomId}`, {
+          credentials: 'same-origin',
+          cache: 'no-store',
+        });
+        const roomData = await roomRes.json();
+
+        if (roomRes.ok && roomData.success && roomData.room) {
+          const loadedRoom = roomData.room as Room;
+          if (joinedRoomIdRef.current !== roomId) {
+            trackRoomJoin(loadedRoom.date_selection_mode || 'RANGE', loadedRoom.status || 'OPEN');
+            joinedRoomIdRef.current = roomId;
+          }
+          setRoom(loadedRoom);
+
+          const voteList = await fetchLatestVotes();
+          setVotes(voteList);
+
+          const identifiers = getRoomIdentifiers(roomId, loadedRoom);
+          purgeLegacyVoteTokens(identifiers);
+
+          const hasLegacyHostSecret = Boolean(
+            identifiers
+              .map((identifier) => localStorage.getItem(`moyeoit_host_secret_${identifier}`))
               .find(Boolean)
-          : undefined;
-      return { ...vote, vote_token: voteToken || undefined };
-    },
-    [roomId]
-  );
+          );
+          setIsHost(Boolean(roomData.is_host) || hasLegacyHostSecret);
 
-  const loadRoomData = useCallback(async () => {
-    if (!roomId) return;
-    try {
-      const roomRes = await fetch(`/api/rooms/${roomId}`, { credentials: 'same-origin' });
-      const roomData = await roomRes.json();
+          // Pure UX convenience: pre-select the last participant viewed/submitted in this browser.
+          const hinted =
+            (preferredVoteId ? voteList.find((v) => v.id === preferredVoteId) || null : null) ||
+            findHintedVote(voteList, getLastVoterHint(identifiers));
 
-      if (roomRes.ok && roomData.success && roomData.room) {
-        if (joinedRoomIdRef.current !== roomId) {
-          trackRoomJoin(roomData.room.date_selection_mode || 'RANGE', roomData.room.status || 'OPEN');
-          joinedRoomIdRef.current = roomId;
-        }
-        setRoom(roomData.room);
-
-        const votesRes = await fetch(`/api/rooms/${roomId}/votes`);
-        const votesData = await votesRes.json();
-        const voteList = votesRes.ok && votesData.success ? votesData.votes : [];
-        setVotes(voteList);
-
-        const identifiers = getRoomIdentifiers(roomId, roomData.room as Room);
-        const hasLegacyHostSecret = Boolean(
-          identifiers
-            .map((identifier) => localStorage.getItem(`moyeoit_host_secret_${identifier}`))
-            .find(Boolean)
-        );
-        setIsHost(Boolean(roomData.is_host) || hasLegacyHostSecret);
-
-        // Check if user has previously voted stored in local storage nickname key
-        const savedNickname = typeof window !== 'undefined'
-          ? (localStorage.getItem(`moyeoit_voted_${roomId}`) ||
-             (roomData.room?.id && localStorage.getItem(`moyeoit_voted_${roomData.room.id}`)) ||
-             (roomData.room?.legacy_slug && localStorage.getItem(`moyeoit_voted_${roomData.room.legacy_slug}`)))
-          : null;
-        if (savedNickname && voteList.length > 0) {
-          const found = voteList.find((v: Vote) => v.nickname.toLowerCase() === savedNickname.toLowerCase());
-          if (found) {
-            setMyVote(resolveVoteWithToken(found, roomData.room as Room));
-            setLastSelectedVoteId(found.id);
+          if (hinted) {
+            setMyVote(hinted);
+            setLastSelectedVoteId(hinted.id);
           } else {
             setMyVote(null);
             setLastSelectedVoteId(null);
           }
         } else {
-          setMyVote(null);
-          setLastSelectedVoteId(null);
+          setRoom(null);
         }
-      } else {
+      } catch (e) {
+        console.error('Failed to load room data:', e);
         setRoom(null);
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      console.error('Failed to load room data:', e);
-      setRoom(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [roomId, resolveVoteWithToken]);
+    },
+    [roomId, fetchLatestVotes]
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadRoomData(), 0);
@@ -168,17 +166,16 @@ export default function RoomDetailPage() {
   const isVoted = Boolean(myVote);
   const isConfirmed = room.status === 'CONFIRMED';
   const isDemoRoom = room.id.startsWith('demo-room-');
+  const isSelectedLegacyPasswordless = myVote?.has_password === false;
 
   const handleSelectVote = (vote: Vote, openEditForm: boolean) => {
-    const voteWithToken = resolveVoteWithToken(vote, room);
-    if (typeof window !== 'undefined') {
-      for (const identifier of getRoomIdentifiers(roomId, room)) {
-        localStorage.setItem(`moyeoit_voted_${identifier}`, vote.nickname);
-      }
-    }
-    setMyVote(voteWithToken);
+    saveLastVoterHint(getRoomIdentifiers(roomId, room), {
+      id: vote.id,
+      nickname: vote.nickname,
+    });
+    setMyVote(vote);
     setLastSelectedVoteId(vote.id);
-    setShowVoteForm(openEditForm);
+    setShowVoteForm(openEditForm && !isConfirmed && vote.has_password !== false);
   };
 
   const fallbackSavedVote = !myVote && lastSelectedVoteId
@@ -194,25 +191,28 @@ export default function RoomDetailPage() {
 
     const data = await res.json();
     if (!res.ok || !data.success) {
+      if (res.status === 409 && data.code === 'VOTE_CONFLICT') {
+        try {
+          const freshVotes = await fetchLatestVotes();
+          setVotes(freshVotes);
+        } catch {
+          // Keep existing vote list if refresh fails
+        }
+      }
       throw new Error(data.error || '투표 제출 중 오류가 발생했습니다.');
     }
 
     trackVoteSubmit(room.date_selection_mode, Object.keys(input.availability).length);
 
-    if (typeof window !== 'undefined') {
-      const identifiers = getRoomIdentifiers(roomId, room);
-      for (const identifier of identifiers) {
-        localStorage.setItem(`moyeoit_voted_${identifier}`, input.nickname);
-        if (data.vote?.vote_token) {
-          localStorage.setItem(
-            voteTokenStorageKey(identifier, input.nickname),
-            data.vote.vote_token
-          );
-        }
-      }
+    const savedVote = data.vote as Vote | undefined;
+    if (savedVote?.id && savedVote?.nickname) {
+      saveLastVoterHint(getRoomIdentifiers(roomId, room), {
+        id: savedVote.id,
+        nickname: savedVote.nickname,
+      });
     }
 
-    await loadRoomData();
+    await loadRoomData(savedVote?.id);
     setShowVoteForm(false);
   };
 
@@ -234,24 +234,18 @@ export default function RoomDetailPage() {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          vote_id: myVote.id,
           nickname: myVote.nickname,
           password: requiresPin ? deletePin.trim() : '',
-          vote_token: myVote.vote_token || '',
         }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || '닉네임 또는 PIN이 올바르지 않습니다.');
+        throw new Error(data.error || '투표를 삭제하지 못했습니다.');
       }
 
-      if (typeof window !== 'undefined') {
-        for (const identifier of getRoomIdentifiers(roomId, room)) {
-          localStorage.removeItem(`moyeoit_voted_${identifier}`);
-          localStorage.removeItem(voteTokenStorageKey(identifier, myVote.nickname));
-        }
-      }
-
+      clearLastVoterHint(getRoomIdentifiers(roomId, room));
       setMyVote(null);
       setLastSelectedVoteId(null);
       setShowDeleteModal(false);
@@ -291,7 +285,7 @@ export default function RoomDetailPage() {
       }
 
       trackRoomConfirmed(room.date_selection_mode);
-      await loadRoomData();
+      await loadRoomData(myVote?.id);
     } catch (error) {
       alert(getErrorMessage(error, '날짜 확정에 실패했습니다.'));
     }
@@ -387,19 +381,26 @@ export default function RoomDetailPage() {
                 <div className="sys-card p-3.5 sm:p-4 bg-white border-slate-200/80 shadow-xs rounded-3xl space-y-2.5">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <span className="text-xs font-bold text-slate-700">
-                      참여자 선택 <span className="text-[11px] font-medium text-slate-500">(본인 이름을 눌러 투표 수정·삭제)</span>
+                      참여자 선택{' '}
+                      <span className="text-[11px] font-medium text-slate-500">
+                        {isConfirmed
+                          ? '(참여자별 응답 내역 확인)'
+                          : '(다른 기기에서도 본인 이름을 눌러 수정·삭제)'}
+                      </span>
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMyVote(null);
-                        setShowVoteForm(true);
-                      }}
-                      className="px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
-                    >
-                      <UserPlus className="w-3.5 h-3.5" />
-                      <span>다른 이름으로 투표하기</span>
-                    </button>
+                    {!isConfirmed && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMyVote(null);
+                          setShowVoteForm(true);
+                        }}
+                        className="px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>다른 이름으로 투표하기</span>
+                      </button>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -435,10 +436,18 @@ export default function RoomDetailPage() {
                         {myVote?.nickname}님의 투표 내역
                       </h3>
                       <p className="text-xs text-slate-600 mt-0.5">
-                        아래에서 최적 날짜 결과를 확인하거나 초대 링크를 친구에게 공유해보세요.
+                        {isConfirmed
+                          ? '이미 확정된 모임방으로 투표를 더 이상 변경할 수 없습니다.'
+                          : '아래에서 최적 날짜 결과를 확인하거나 초대 링크를 친구에게 공유해보세요.'}
                       </p>
                     </div>
                   </div>
+
+                  {!isConfirmed && isSelectedLegacyPasswordless && (
+                    <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
+                      비밀번호 없이 등록된 이전 투표입니다. 내용을 수정하려면 먼저 삭제한 뒤 숫자 4자리 비밀번호를 설정해 다시 투표해 주세요.
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-2 pt-2 border-t border-emerald-100 flex-wrap">
                     <MultiShareButton
@@ -448,36 +457,53 @@ export default function RoomDetailPage() {
                       className="flex-1 py-2.5"
                     />
 
-                    <button
-                      type="button"
-                      onClick={() => setShowVoteForm(true)}
-                      className="px-3 py-2.5 rounded-2xl bg-white text-slate-700 hover:bg-slate-100 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border border-slate-200"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      <span>수정</span>
-                    </button>
+                    {!isConfirmed && !isSelectedLegacyPasswordless && (
+                      <button
+                        type="button"
+                        onClick={() => setShowVoteForm(true)}
+                        className="px-3 py-2.5 rounded-2xl bg-white text-slate-700 hover:bg-slate-100 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border border-slate-200"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>수정</span>
+                      </button>
+                    )}
 
-                    <button
-                      type="button"
-                      onClick={() => setShowDeleteModal(true)}
-                      className="px-3 py-2.5 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                      <span>삭제</span>
-                    </button>
+                    {!isConfirmed && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeletePin('');
+                            setDeleteErrorMsg('');
+                            setShowDeleteModal(true);
+                          }}
+                          className="px-3 py-2.5 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                          <span>삭제</span>
+                        </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMyVote(null);
-                        setShowVoteForm(true);
-                      }}
-                      className="px-3 py-2.5 rounded-2xl bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                    >
-                      <UserPlus className="w-3.5 h-3.5" />
-                      <span>다른 이름으로 투표</span>
-                    </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMyVote(null);
+                            setShowVoteForm(true);
+                          }}
+                          className="px-3 py-2.5 rounded-2xl bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          <span>다른 이름으로 투표</span>
+                        </button>
+                      </>
+                    )}
                   </div>
+                </div>
+              ) : isConfirmed ? (
+                <div className="sys-card p-5 border-slate-200 bg-slate-50 text-center space-y-1.5 rounded-3xl">
+                  <p className="text-sm font-black text-slate-900">투표가 마감된 모임방입니다.</p>
+                  <p className="text-xs text-slate-600">
+                    상단 카드에서 최종 확정된 일정을 확인하거나 위 참여자 목록에서 응답을 조회할 수 있습니다.
+                  </p>
                 </div>
               ) : (
                 <div id="vote-form-section">
@@ -487,13 +513,14 @@ export default function RoomDetailPage() {
                     existingVote={myVote}
                     existingVotes={votes}
                     onSelectExistingVote={(v) => handleSelectVote(v, true)}
+                    onInspectExistingVote={(v) => handleSelectVote(v, false)}
                     onSubmitVote={handleSubmitVote}
                     onCancel={
                       isVoted
                         ? () => setShowVoteForm(false)
                         : fallbackSavedVote
                         ? () => {
-                            setMyVote(resolveVoteWithToken(fallbackSavedVote, room));
+                            setMyVote(fallbackSavedVote);
                             setShowVoteForm(false);
                           }
                         : undefined
@@ -652,7 +679,7 @@ export default function RoomDetailPage() {
             >
               새 모임방 만들기
             </button>
-          ) : !isVoted || showVoteForm ? (
+          ) : !isConfirmed && (!isVoted || showVoteForm) ? (
             <button
               type="button"
               onClick={() => {

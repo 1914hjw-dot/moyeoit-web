@@ -1,15 +1,17 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, ShieldCheck, Calendar as CalendarIcon, ChevronDown, ChevronUp, MessageSquare, Eye, EyeOff, Globe } from 'lucide-react';
+import { Sparkles, ShieldCheck, Calendar as CalendarIcon, ChevronDown, ChevronUp, MessageSquare, Eye, EyeOff, Globe, AlertTriangle } from 'lucide-react';
 import { Room, Vote, AvailabilityStatus, SubmitVoteInput } from '@/types/schema';
 import { CalendarVoteSelector } from '@/components/ui/CalendarVoteSelector';
+import { isSameNickname } from '@/lib/validation/nickname';
 
 interface GuestVoteFormProps {
   room: Room;
   existingVote?: Vote | null;
   existingVotes?: Vote[];
   onSelectExistingVote?: (vote: Vote) => void;
+  onInspectExistingVote?: (vote: Vote) => void;
   onSubmitVote: (input: SubmitVoteInput) => Promise<void> | void;
   onCancel?: () => void;
 }
@@ -19,6 +21,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
   existingVote,
   existingVotes = [],
   onSelectExistingVote,
+  onInspectExistingVote,
   onSubmitVote,
   onCancel,
 }) => {
@@ -66,26 +69,37 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
     return initial;
   });
 
+  const isLegacyPasswordlessEdit = Boolean(existingVote && existingVote.has_password === false);
   const trimmedNickname = nickname.trim();
   const matchedExistingVote =
     !existingVote && trimmedNickname
-      ? existingVotes.find(
-          (v) => v.nickname.trim().toLocaleLowerCase('ko-KR') === trimmedNickname.toLocaleLowerCase('ko-KR')
-        )
+      ? existingVotes.find((v) => isSameNickname(v.nickname, trimmedNickname))
       : undefined;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (isLegacyPasswordlessEdit) {
+      setErrorMsg('비밀번호 없이 등록된 이전 투표는 직접 수정할 수 없습니다. 투표를 삭제한 뒤 비밀번호를 설정해 다시 투표해 주세요.');
+      return;
+    }
+
     if (!trimmedNickname) {
       setErrorMsg('이름 또는 닉네임을 입력해 주세요.');
       return;
     }
 
     if (matchedExistingVote) {
-      setErrorMsg(
-        `이미 투표한 이름입니다. 본인 투표 수정 버튼을 누르거나 다른 닉네임(예: ${matchedExistingVote.nickname}B)을 입력해 주세요.`
-      );
+      if (matchedExistingVote.has_password === false) {
+        setErrorMsg(
+          `이미 '${matchedExistingVote.nickname}' 이름으로 등록된 이전 투표가 있습니다. 기존 투표를 삭제 후 다시 투표하거나 다른 닉네임(예: ${matchedExistingVote.nickname}B)을 입력해 주세요.`
+        );
+      } else {
+        setErrorMsg(
+          `이미 투표한 이름입니다. 본인 투표 수정 버튼을 누르거나 다른 닉네임(예: ${matchedExistingVote.nickname}B)을 입력해 주세요.`
+        );
+      }
       return;
     }
 
@@ -107,9 +121,10 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
     try {
       await onSubmitVote({
         room_id: room.id,
+        intent: existingVote ? 'update' : 'create',
+        ...(existingVote ? { vote_id: existingVote.id } : {}),
         nickname: trimmedNickname,
         password: password.trim(),
-        vote_token: existingVote?.vote_token || '',
         availability,
         note: note.trim(),
       });
@@ -152,6 +167,26 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
           )}
         </div>
 
+        {isLegacyPasswordlessEdit && existingVote && (
+          <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
+            <div className="flex items-start gap-2 text-xs text-amber-900">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                비밀번호 없이 등록된 이전 투표는 직접 수정할 수 없습니다. 투표를 삭제한 뒤 숫자 4자리 비밀번호를 설정해 다시 투표해 주세요.
+              </p>
+            </div>
+            {onInspectExistingVote && (
+              <button
+                type="button"
+                onClick={() => onInspectExistingVote(existingVote)}
+                className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors cursor-pointer"
+              >
+                투표 확인·삭제 화면으로 돌아가기
+              </button>
+            )}
+          </div>
+        )}
+
         {errorMsg && (
           <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-semibold">
             ⚠️ {errorMsg}
@@ -183,17 +218,36 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
 
             {matchedExistingVote && (
               <div className="mt-2 p-3 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
-                <p className="text-xs text-amber-900 leading-relaxed">
-                  이미 <strong className="font-black">&apos;{matchedExistingVote.nickname}&apos;</strong> 이름으로 등록된 투표가 있습니다. 본인의 투표를 수정하려면 아래 버튼을 누르고, 동명이인이라면 구분되는 이름(예: {matchedExistingVote.nickname}B)을 입력해 주세요.
-                </p>
-                {onSelectExistingVote && (
-                  <button
-                    type="button"
-                    onClick={() => onSelectExistingVote(matchedExistingVote)}
-                    className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors cursor-pointer"
-                  >
-                    이 이름으로 내 투표 수정하기
-                  </button>
+                {matchedExistingVote.has_password === false ? (
+                  <>
+                    <p className="text-xs text-amber-900 leading-relaxed">
+                      이미 <strong className="font-black">&apos;{matchedExistingVote.nickname}&apos;</strong> 이름으로 비밀번호 없이 등록된 이전 투표가 있습니다. 본인의 투표라면 삭제 후 비밀번호를 설정해 다시 투표해 주세요. 동명이인이라면 구분되는 이름(예: {matchedExistingVote.nickname}B)을 입력해 주세요.
+                    </p>
+                    {onInspectExistingVote && (
+                      <button
+                        type="button"
+                        onClick={() => onInspectExistingVote(matchedExistingVote)}
+                        className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        기존 투표 확인·삭제하기
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-amber-900 leading-relaxed">
+                      이미 <strong className="font-black">&apos;{matchedExistingVote.nickname}&apos;</strong> 이름으로 등록된 투표가 있습니다. 본인의 투표를 수정하려면 아래 버튼을 누르고, 동명이인이라면 구분되는 이름(예: {matchedExistingVote.nickname}B)을 입력해 주세요.
+                    </p>
+                    {onSelectExistingVote && (
+                      <button
+                        type="button"
+                        onClick={() => onSelectExistingVote(matchedExistingVote)}
+                        className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        이 이름으로 내 투표 수정하기
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -203,15 +257,13 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-bold text-slate-700 block">
                 {existingVote
-                  ? existingVote.has_password === false
-                    ? '새 비밀번호 설정 (숫자 4자리)'
-                    : '비밀번호 확인 (숫자 4자리)'
+                  ? '비밀번호 확인 (숫자 4자리)'
                   : '수정·삭제용 비밀번호 (숫자 4자리)'}{' '}
                 <span className="text-rose-500">*</span>
               </label>
               <span className="text-[10px] text-emerald-600 flex items-center gap-0.5 font-bold">
                 <ShieldCheck className="w-3 h-3" />
-                <span>암호화 보관</span>
+                <span>서버 암호화 검증</span>
               </span>
             </div>
 
@@ -222,6 +274,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
                 pattern="\d{4}"
                 maxLength={4}
                 required
+                disabled={isLegacyPasswordlessEdit}
                 autoComplete={existingVote ? 'current-password' : 'new-password'}
                 value={password}
                 onChange={(e) => {
@@ -229,12 +282,13 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
                   if (errorMsg) setErrorMsg('');
                 }}
                 placeholder="숫자 4자리"
-                className="w-full sys-input h-11 text-xs sm:text-sm bg-white pr-10 font-mono tracking-widest"
+                className="w-full sys-input h-11 text-xs sm:text-sm bg-white pr-10 font-mono tracking-widest disabled:bg-slate-100 disabled:text-slate-400"
               />
               <button
                 type="button"
+                disabled={isLegacyPasswordlessEdit}
                 onClick={() => setShowPasswordText((prev) => !prev)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-lg transition-colors cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
                 aria-label={showPasswordText ? '비밀번호 숨기기' : '비밀번호 보기'}
               >
                 {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -242,10 +296,8 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
             </div>
             <p className="text-[11px] text-slate-500 mt-1">
               {existingVote
-                ? existingVote.has_password === false
-                  ? '이전에 비밀번호 없이 등록된 투표입니다. 앞으로 사용할 숫자 4자리 비밀번호를 입력해 주세요.'
-                  : '투표 등록 시 설정한 숫자 4자리 비밀번호를 입력해야 수정됩니다.'
-                : '투표를 수정하거나 삭제할 때 본인 확인용으로 사용됩니다.'}
+                ? '투표 등록 시 설정한 숫자 4자리 비밀번호를 입력해야 수정됩니다.'
+                : '다른 기기에서도 본인의 투표를 수정·삭제할 때 확인용으로 사용됩니다.'}
             </p>
           </div>
         </div>
@@ -262,6 +314,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
             scheduleType={room.schedule_type}
             timeSlots={room.time_slots}
             dateSelectionMode={room.date_selection_mode}
+            readOnly={isLegacyPasswordlessEdit}
           />
         </div>
 
@@ -290,10 +343,11 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
                 <input
                   type="text"
                   autoComplete="off"
+                  disabled={isLegacyPasswordlessEdit}
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="예: 27일은 저녁 7시 이후 가능"
-                  className="w-full sys-input h-10 text-xs bg-white"
+                  className="w-full sys-input h-10 text-xs bg-white disabled:bg-slate-100"
                 />
               </div>
             </div>
@@ -303,7 +357,7 @@ export const GuestVoteForm: React.FC<GuestVoteFormProps> = ({
         {/* 4. Main Submit Button (Slate 900) */}
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isLegacyPasswordlessEdit}
           className="w-full sys-btn-primary h-12 text-xs sm:text-sm font-black disabled:opacity-50 shadow-md cursor-pointer flex items-center justify-center gap-2"
         >
           <Sparkles className="w-4 h-4 text-white" />

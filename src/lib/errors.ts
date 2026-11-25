@@ -1,16 +1,26 @@
+export interface AppErrorOptions {
+  retryAfterSeconds?: number;
+  details?: Record<string, unknown>;
+}
+
 export class AppError extends Error {
   readonly status: number;
   readonly code: string;
+  readonly retryAfterSeconds?: number;
+  readonly details?: Record<string, unknown>;
 
   constructor(
     message: string,
     status: number = 400,
-    code: string = 'BAD_REQUEST'
+    code: string = 'BAD_REQUEST',
+    options?: AppErrorOptions
   ) {
     super(message);
     this.name = 'AppError';
     this.status = status;
     this.code = code;
+    this.retryAfterSeconds = options?.retryAfterSeconds;
+    this.details = options?.details;
   }
 }
 

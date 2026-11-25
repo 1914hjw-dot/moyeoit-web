@@ -11,6 +11,7 @@ import {
   clearVotePinFailuresOnSuccessWithDeps,
   recordVotePinFailureWithDeps,
   type PinLockoutDeps,
+  type PinLockoutTarget,
 } from './pinLockoutCore';
 
 const defaultDeps: PinLockoutDeps = {
@@ -20,17 +21,21 @@ const defaultDeps: PinLockoutDeps = {
   logAuditTrail,
 };
 
-export async function assertVotePinNotLocked(roomId: string, nickname: string): Promise<void> {
-  return assertVotePinNotLockedWithDeps(defaultDeps, roomId, nickname);
+export type { PinLockoutTarget };
+
+export async function assertVotePinNotLocked(target: PinLockoutTarget): Promise<void> {
+  return assertVotePinNotLockedWithDeps(defaultDeps, target);
 }
 
-export async function recordVotePinFailure(roomId: string, nickname: string): Promise<void> {
-  return recordVotePinFailureWithDeps(defaultDeps, roomId, nickname);
+export async function recordVotePinFailure(
+  target: PinLockoutTarget
+): Promise<{ locked: false; remainingAttempts: number }> {
+  return recordVotePinFailureWithDeps(defaultDeps, target);
 }
 
-export async function clearVotePinFailuresOnSuccess(
-  roomId: string,
-  nickname: string
-): Promise<void> {
-  return clearVotePinFailuresOnSuccessWithDeps(defaultDeps, roomId, nickname);
+export async function clearVotePinFailuresOnSuccess(target: {
+  roomId: string;
+  voteId: string;
+}): Promise<void> {
+  return clearVotePinFailuresOnSuccessWithDeps(defaultDeps, target);
 }

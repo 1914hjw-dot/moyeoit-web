@@ -164,9 +164,27 @@ export function errorResponse(
   }
 
   if (error instanceof AppError) {
+    const mergedHeaders = new Headers(headers);
+    const retryAfterSeconds =
+      typeof error.retryAfterSeconds === 'number' &&
+      Number.isFinite(error.retryAfterSeconds) &&
+      error.retryAfterSeconds > 0
+        ? Math.ceil(error.retryAfterSeconds)
+        : undefined;
+
+    if (retryAfterSeconds !== undefined) {
+      mergedHeaders.set('Retry-After', retryAfterSeconds.toString());
+    }
+
     return NextResponse.json(
-      { success: false, error: error.message, code: error.code },
-      { status: error.status, ...init }
+      {
+        success: false,
+        error: error.message,
+        code: error.code,
+        ...(retryAfterSeconds !== undefined ? { retry_after_seconds: retryAfterSeconds } : {}),
+        ...(error.details ? { details: error.details } : {}),
+      },
+      { status: error.status, headers: mergedHeaders }
     );
   }
 
